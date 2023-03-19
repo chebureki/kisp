@@ -13,15 +13,10 @@ use crate::interpreter::Interpreter;
 //use crate::scope::ScopeContainer;
 
 fn main()->(){
-
-  /*
   let mut lexer = Lexer::from_text("\
-    (print 1 2) \
-    (print 1 2) \
+    (print 1 (+ 1 1)) \
+    (print (+ 2 2)) \
     ");
-
-   */
-  let mut lexer = Lexer::from_text("(+ 10 8 (- 10 8)) ");
   let mut iter = lexer.into_iter();
   let ast = parser::parse(&mut iter).expect("failed ast");
   //dbg!(ast);

@@ -17,7 +17,14 @@ fn get_ref_val<'ast>(arg: &Rc<EvalValue<'ast>>) -> &'ast SExpression {
 }
 
 fn builtin_print<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) -> EvalResult<'ast> {
-    todo!()
+    let vals= scope.vararg().into_iter()
+        .map(get_ref_val)
+        .map(|exp| interpreter.eval_expression(&scope, exp))
+        .collect::<Result<Vec<Rc<EvalValue>>, EvalError>>()?;
+    let string_vec: Vec<String> = vals.into_iter().map(|v|v.to_string()).collect();
+    let payload = string_vec.join( " ");
+    println!("{}", payload);
+    Ok(Rc::new(EvalValue::Unit))
 }
 
 fn function_with_reduction<'ast, T>(interpreter: &Interpreter<'ast>, scope: &Rc<Scope<'ast>>, value_mapping: fn(&EvalValue<'ast>) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError>
@@ -59,20 +66,8 @@ fn builtin_modulo<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>)
     integer_reduction(interpreter,scope,|a,b| a%b)
 }
 
-fn foo(){
-    let v = vec![1usize, 2, 3, 4, 5];
-    let sum = v.into_iter().reduce(|a, b| a + b);
-    dbg!(sum);
-    /*
-    let data = vec![1,2,3,4];
-    data.iter().reduce(|a,b| a+b);
-    dbg!(data);
-
-     */
-}
 
 pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
-    foo(); //TODO: remove me
     vec![
         BuiltinFunction{
             callback: builtin_add,
@@ -86,5 +81,9 @@ pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
             callback: builtin_modulo,
             name: "%",
         },
+        BuiltinFunction{
+            callback: builtin_print,
+            name: "print"
+        }
     ]
 }

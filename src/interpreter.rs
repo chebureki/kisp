@@ -1,6 +1,6 @@
 use std::cell::{Ref, RefCell};
 use std::fmt;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter, Octal, Write};
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
@@ -26,6 +26,18 @@ pub enum EvalValue<'ast>{
     Unit,
     ExpressionRef(&'ast SExpression),
     CallableValue(Callable<'ast>),
+}
+
+impl Display for EvalValue<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            EvalValue::IntValue(i) => f.write_str(i.to_string().as_str()),
+            EvalValue::StringValue(s) => f.write_str(s.as_str()),
+            EvalValue::Unit => f.write_str("unit"),
+            EvalValue::ExpressionRef(_) => f.write_str("<expression>"),
+            EvalValue::CallableValue(_) => f.write_str("<callable>")
+        }
+    }
 }
 
 #[derive(Debug)]
