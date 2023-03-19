@@ -47,15 +47,18 @@ pub enum EvalError{
     CallingNonCallable,
     InvalidType,
     MissingArgument,
-    NotImplemented
+    NotImplemented,
+    Reassignment,
 }
 
 fn env_scope<'ast>() -> Rc<Scope<'ast>> {
     let scope = Scope::new();
-    scope.insert("answer_to_all".to_string(),EvalValue::IntValue(42));
+    scope.insert("answer_to_all".to_string(),Rc::new(EvalValue::IntValue(42)));
 
     for bi in builtin_functions().iter() {
-        scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi.callback)))
+        scope.insert(bi.name.to_string(),
+                     Rc::new(EvalValue::CallableValue(Callable::Internal(bi.callback)))
+        )
     }
     scope
 }

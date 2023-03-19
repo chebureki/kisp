@@ -7,7 +7,7 @@ use crate::interpreter::EvalValue;
 
 
 pub struct Scope<'ast> {
-    parent: Option<Rc<Scope<'ast>>>,
+    pub parent: Option<Rc<Scope<'ast>>>,
     entries: RefCell<HashMap<String, Rc<EvalValue<'ast>>>>,
     vararg: Vec<Rc<EvalValue<'ast>>>
 }
@@ -39,8 +39,8 @@ impl <'ast> Scope<'ast> {
         }
     }
 
-    pub fn insert(&self, identifier: String, value: EvalValue<'ast>) -> () {
+    pub fn insert(&self, identifier: String, value: Rc<EvalValue<'ast>>) -> () {
         let mut map = self.entries.borrow_mut();
-        map.insert(identifier, Rc::new(value));
+        map.insert(identifier, value);
     }
 }

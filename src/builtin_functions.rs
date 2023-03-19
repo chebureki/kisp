@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
@@ -66,6 +67,22 @@ fn builtin_modulo<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>)
     integer_reduction(interpreter,scope,|a,b| a%b)
 }
 
+//variable assignment, non mutable
+fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) -> EvalResult<'ast> {
+    let identifier = match get_ref_val(scope.vararg().get(0).unwrap()) {
+        SExpression::Symbol(i) => Ok(i),
+        _ => Err(EvalError::InvalidType)
+    }?;
+    if let Some(_) = scope.lookup(identifier) {
+        return Err(EvalError::Reassignment);
+    }
+
+    let expression = get_ref_val(scope.vararg().get(1).unwrap());
+    let evaluated = interpreter.eval_expression(&scope, expression)?;
+    //TODO: something is fishy here
+    scope.parent.clone().unwrap().insert(identifier.clone(), evaluated.clone());
+    Ok(evaluated)
+}
 
 pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
     vec![
@@ -84,6 +101,10 @@ pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
         BuiltinFunction{
             callback: builtin_print,
             name: "print"
+        },
+        BuiltinFunction{
+            callback: builtin_let,
+            name: "let"
         }
     ]
 }
