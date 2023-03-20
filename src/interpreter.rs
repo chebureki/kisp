@@ -67,6 +67,7 @@ pub enum EvalError{
     MissingArgument,
     NotImplemented,
     Reassignment,
+    StackOverflow,
 }
 
 fn env_scope<'ast>() -> ScopeRef<'ast> {
@@ -110,7 +111,7 @@ pub fn eval_expression<'ast>(scope: &ScopeRef<'ast>, expression: &'ast SExpressi
 }
 
 fn eval_function<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression], function: &Function<'ast>) -> EvalResult<'ast> {
-    let function_scope = scope.enter();
+    let function_scope = scope.enter()?;
 
     for (identifier, expression) in function.arguments.iter().zip(args) {
         function_scope.insert(identifier.clone(), eval_expression(scope, expression)?);
@@ -150,6 +151,6 @@ fn eval_block_iter<'ast>(scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpr
 }
 
 fn eval_block<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
-    let block_scope= scope.enter();
+    let block_scope= scope.enter()?;
     eval_block_iter(&block_scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
 }
