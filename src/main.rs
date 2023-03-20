@@ -9,17 +9,9 @@ use lexer::{Lexer, TokenValue};
 use crate::interpreter::{EvalResult, Interpreter};
 
 fn main()->(){
-  /*
-  (let x (+ 5 5))
-    (+ x x)
-    (let add +)
-    (print 1 (print 2 (print 3 (print 4))))
-    (print)
-    (print)
-   */
   let mut lexer = Lexer::from_text("\
-
-    (print (+ 2 2))
+    (let x 222)
+    (+ x x)
     ");
   let mut iter = lexer.into_iter();
   let ast = parser::parse(&mut iter).expect("failed ast");

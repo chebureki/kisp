@@ -1,5 +1,6 @@
 use std::iter::Map;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
 use crate::interpreter::{EvalError, EvalResult, EvalValue, EvalValueRef, InternalCallback, Interpreter};
@@ -63,27 +64,30 @@ fn builtin_minus<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, 
 fn builtin_modulo<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
     integer_reduction(interpreter, scope, raw_args, |a,b| a%b)
 }
-/*
-fn try_get_arg<'ast>(scope: ScopeRef<'ast>)
+
+fn try_pos_arg<'ast>(raw_args: &'ast [SExpression], pos: usize) -> Result<&'ast SExpression,EvalError> {
+    match raw_args.get(pos){
+        None => Err(EvalError::MissingArgument),
+        Some(v) => Ok(v)
+    }
+}
 
 //variable assignment, non mutable
-fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
-    let identifier = match get_ref_val(scope.vararg().get(0).unwrap()) {
+fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    let identifier = match try_pos_arg(raw_args,0) ?{
         SExpression::Symbol(i) => Ok(i),
         _ => Err(EvalError::InvalidType)
     }?;
-    if let Some(_) = scope.lookup(identifier) {
+    if let Some(_) = scope.lookup(&identifier) {
         return Err(EvalError::Reassignment);
     }
 
-    let expression = get_ref_val(scope.vararg().get(1).unwrap());
+    let expression = try_pos_arg(raw_args,1)?;
     let evaluated = interpreter.eval_expression(&scope, expression)?;
-    //TODO: something is fishy here
-    scope.parent.clone().unwrap().insert(identifier.clone(), evaluated.clone());
+    scope.insert(identifier.clone(), evaluated.clone());
     Ok(evaluated)
 }
 
- */
 
 pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
     vec![
@@ -104,12 +108,10 @@ pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
             callback: builtin_print,
             name: "print"
         },
-        /*
+
         BuiltinFunction{
             callback: builtin_let,
             name: "let"
         }
-
-         */
     ]
 }
