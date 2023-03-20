@@ -3,7 +3,8 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
-use crate::interpreter::{EvalError, EvalResult, EvalValue, EvalValueRef, InternalCallback, Interpreter};
+use crate::interpreter::{Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, InternalCallback, Interpreter};
+use crate::interpreter::EvalValue::CallableValue;
 use crate::scope::{Scope, ScopeRef};
 
 pub struct BuiltinFunction<'ast>{
@@ -88,6 +89,39 @@ fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, ra
     Ok(evaluated)
 }
 
+fn builtin_function_get_arguments<'ast>(raw_idents: &Vec<SExpression>) -> Result<Vec<String>, EvalError> {
+    raw_idents.iter()
+        .map(|exp|
+            match exp {
+                SExpression::Symbol(i) => Ok(i.clone()),
+                _ => Err(EvalError::InvalidType)
+            }
+        )
+        .collect()
+}
+
+fn builtin_function<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    let name: String = match try_pos_arg(raw_args, 0)? {
+        SExpression::Symbol(i) => i.clone(),
+        _ => return Err(EvalError::InvalidType),
+    };
+
+
+    let args: Vec<String> = match try_pos_arg(raw_args, 1)? {
+        SExpression::Block(expressions) => builtin_function_get_arguments(expressions),
+        _ => Err(EvalError::InvalidType),
+    }?;
+    let body: &SExpression = try_pos_arg(raw_args, 2)?;
+    let function = Function::from(
+        scope.clone(),
+        name.clone(),
+        args,
+        body
+    );
+    let function_value = EvalValue::CallableValue(Callable::Function(function)).to_ref();
+    scope.insert(name, function_value.clone());
+    Ok(function_value)
+}
 
 pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
     vec![
@@ -112,6 +146,10 @@ pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
         BuiltinFunction{
             callback: builtin_let,
             name: "let"
+        },
+        BuiltinFunction{
+            callback: builtin_function,
+            name: "fn"
         }
     ]
 }

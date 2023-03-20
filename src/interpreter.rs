@@ -19,9 +19,15 @@ pub struct Function<'ast>{
     body: &'ast SExpression,
 }
 
-enum Callable<'ast>{
+impl <'ast> Function<'ast> {
+    pub fn from(in_scope: ScopeRef<'ast>, name: String, arguments: Vec<String>, body: &'ast SExpression) -> Function<'ast> {
+        Function{in_scope, name, arguments, body}
+    }
+}
+
+pub enum Callable<'ast>{
     Internal(InternalCallback<'ast>),
-    Function(&'ast SExpression),
+    Function(Function<'ast>),
     //Expression(&'ast SExpression),
 }
 
@@ -110,13 +116,22 @@ impl <'ast> Interpreter<'ast>{
         }
     }
 
+    fn eval_function(&self, scope: &ScopeRef<'ast>, args: &'ast [SExpression], function: &Function<'ast>) -> EvalResult<'ast> {
+        let function_scope = scope.enter();
+
+        for (identifier, expression) in function.arguments.iter().zip(args) {
+            function_scope.insert(identifier.clone(), self.eval_expression(scope, expression)?);
+        }
+        self.eval_expression(&function_scope, function.body)
+    }
+
     fn eval_callable(&self, scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
         match callable {
             Callable::Internal(internal_callback) => {
                 //flat scope and args are manually evaluated
                 internal_callback(self, scope, args)
             },
-            Callable::Function(_) => todo!()
+            Callable::Function(function) => self.eval_function(scope, args, function),
         }
     }
 
@@ -142,6 +157,7 @@ impl <'ast> Interpreter<'ast>{
     }
 
     fn eval_block(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
-        self.eval_block_iter(scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
+        let block_scope= scope.enter();
+        self.eval_block_iter(&block_scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
     }
 }
