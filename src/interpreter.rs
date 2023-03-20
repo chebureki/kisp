@@ -24,8 +24,16 @@ pub enum EvalValue<'ast>{
     IntValue(i32),
     StringValue(String),
     Unit,
-    ExpressionRef(&'ast SExpression),
+    //ExpressionRef(&'ast SExpression),
     CallableValue(Callable<'ast>),
+}
+
+pub type EvalValueRef<'ast> = Rc<EvalValue<'ast>>;
+
+impl <'ast> EvalValue<'ast>{
+    pub fn to_ref(self) -> EvalValueRef<'ast>{
+        Rc::new(self)
+    }
 }
 
 impl Display for EvalValue<'_> {
@@ -34,7 +42,7 @@ impl Display for EvalValue<'_> {
             EvalValue::IntValue(i) => f.write_str(i.to_string().as_str()),
             EvalValue::StringValue(s) => f.write_str(s.as_str()),
             EvalValue::Unit => f.write_str("unit"),
-            EvalValue::ExpressionRef(_) => f.write_str("<expression>"),
+            //EvalValue::ExpressionRef(_) => f.write_str("<expression>"),
             EvalValue::CallableValue(_) => f.write_str("<callable>")
         }
     }
@@ -53,23 +61,21 @@ pub enum EvalError{
 
 fn env_scope<'ast>() -> ScopeRef<'ast> {
     let scope = Scope::new();
-    scope.insert("answer_to_all".to_string(),Rc::new(EvalValue::IntValue(42)));
+    scope.insert("answer_to_all".to_string(),EvalValue::IntValue(42).to_ref());
 
     for bi in builtin_functions().iter() {
-        scope.insert(bi.name.to_string(),
-                     Rc::new(EvalValue::CallableValue(Callable::Internal(bi.callback)))
-        )
+        scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi.callback)).to_ref())
     }
     scope
 }
 
-pub type InternalCallback<'ast> = fn(&Interpreter<'ast>,ScopeRef<'ast>) -> EvalResult<'ast>;
+pub type InternalCallback<'ast> = fn(&Interpreter<'ast>, &'_ ScopeRef<'ast>, &'ast [SExpression]) -> EvalResult<'ast>;
 impl fmt::Debug for Callable<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         todo!()
     }
 }
-pub type EvalResult<'ast> = Result<Rc<EvalValue<'ast>>,EvalError>;
+pub type EvalResult<'ast> = Result<EvalValueRef<'ast>,EvalError>;
 
 impl <'ast> Interpreter<'ast>{
     pub fn new(ast: &'ast SExpression) -> Interpreter<'ast> {
@@ -91,7 +97,7 @@ impl <'ast> Interpreter<'ast>{
                 Err(EvalError::UnknownSymbol(i.clone())),
                 |v| Ok(v)
             ),
-            SExpression::Number(i) => Ok(Rc::new(EvalValue::IntValue(*i))),
+            SExpression::Number(i) => Ok(EvalValue::IntValue(*i).to_ref()),
             SExpression::List(expressions) => self.eval_list(scope, expressions),
             _ => todo!(),
         }
@@ -99,10 +105,9 @@ impl <'ast> Interpreter<'ast>{
 
     fn eval_callable(&self, scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
         match callable {
-            Callable::Internal(callback) => {
-                let vararg = args.iter().map(|e| Rc::new(EvalValue::ExpressionRef(e))).collect();
-                let local_scope = scope.enter_with_vararg(vararg);
-                callback(self, local_scope)
+            Callable::Internal(internal_callback) => {
+                //flat scope and args are manually evaluated
+                internal_callback(self, scope, args)
             },
             Callable::Function(_) => todo!()
         }
@@ -110,7 +115,7 @@ impl <'ast> Interpreter<'ast>{
 
     fn eval_list(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
         if expressions.is_empty(){
-            return Ok(Rc::new(EvalValue::Unit)); //not sure how well this notation is, but whatever
+            return Ok(EvalValue::Unit.to_ref()); //not sure how well this notation is, but whatever
         }
         let head_value = self.eval_expression(scope, expressions.first().unwrap())?;
         let tail = &expressions[1..];
@@ -121,7 +126,7 @@ impl <'ast> Interpreter<'ast>{
         self.eval_callable(scope, callable, tail)
     }
 
-    fn eval_list_block_iter(&self, scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: Rc<EvalValue<'ast>>) -> EvalResult<'ast> {
+    fn eval_list_block_iter(&self, scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: EvalValueRef<'ast>) -> EvalResult<'ast> {
         match iterator.next() {
             None => Ok(last),
             Some(exp) =>
@@ -130,6 +135,6 @@ impl <'ast> Interpreter<'ast>{
     }
 
     fn eval_list_block(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
-        self.eval_list_block_iter(scope, &mut expressions.iter(), Rc::new(EvalValue::Unit))
+        self.eval_list_block_iter(scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
     }
 }

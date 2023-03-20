@@ -1,8 +1,8 @@
+use std::iter::Map;
 use std::ops::Deref;
-use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
-use crate::interpreter::{EvalError, EvalResult, EvalValue, InternalCallback, Interpreter};
+use crate::interpreter::{EvalError, EvalResult, EvalValue, EvalValueRef, InternalCallback, Interpreter};
 use crate::scope::{Scope, ScopeRef};
 
 pub struct BuiltinFunction<'ast>{
@@ -10,65 +10,64 @@ pub struct BuiltinFunction<'ast>{
     pub name: &'static str
 }
 
-fn get_ref_val<'ast>(arg: &Rc<EvalValue<'ast>>) -> &'ast SExpression {
-    match arg.as_ref() {
-        EvalValue::ExpressionRef(exp) => exp,
-        _ => panic!("expected expression ref")
-    }
+type CollectedResult<'ast> = Result<Vec<EvalValueRef<'ast>>, EvalError>;
+
+//TODO: make this part of an iterable
+fn evaluated_args<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> Result<Vec<EvalValueRef<'ast>>, EvalError> {
+    raw_args.iter()
+        .map(|exp| interpreter.eval_expression(scope, exp))
+        .collect::<Result<Vec<EvalValueRef>, EvalError>>()
 }
 
-fn builtin_print<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
-    let vals= scope.vararg().into_iter()
-        .map(get_ref_val)
-        .map(|exp| interpreter.eval_expression(&scope, exp))
-        .collect::<Result<Vec<Rc<EvalValue>>, EvalError>>()?;
-    let string_vec: Vec<String> = vals.into_iter().map(|v|v.to_string()).collect();
-    let payload = string_vec.join( " ");
-    println!("{}", payload);
-    Ok(Rc::new(EvalValue::Unit))
-}
-
-fn function_with_reduction<'ast, T>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, value_mapping: fn(&EvalValue<'ast>) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError>
-    //where T: Copy
-{
-    let values: Result<Vec<T>, EvalError>=
-        scope.vararg().iter()
-            .map(get_ref_val)
-            .map(|exp| interpreter.eval_expression(&scope, exp))
-            .map(|result| result.and_then(|v| value_mapping(v.as_ref())))
+fn builtin_print<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    let vals: Vec<String> =
+        evaluated_args(interpreter,scope,raw_args)?.iter()
+            .map(|v|v.to_string())
             .collect();
-    match values?.into_iter().reduce(reduction) {
-        None => Err(EvalError::MissingArgument),
-        Some(v) => Ok(v)
-    }
+            //.collect::<CollectedResult>()?;
+    let payload = vals.join( " ");
+    println!("{}", payload);
+    Ok(EvalValue::Unit.to_ref())
 }
 
-fn integer_reduction<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>, reduction: fn(i32, i32) -> i32) -> EvalResult<'ast>{
+fn function_with_reduction<'ast, T>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression], value_mapping: fn(&EvalValue<'ast>) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {
+    evaluated_args(interpreter,scope,raw_args)?
+        .iter()
+        .map(|r| value_mapping(r.as_ref()))
+        //TODO: a seemingly unnecessary collect here, but it also does an early terminate on the sream
+        .collect::<Result<Vec<T>, EvalError>>()?.into_iter()
+        .reduce(reduction)
+        .map_or(Err(EvalError::MissingArgument),|v|Ok(v))
+}
+
+fn integer_reduction<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression], reduction: fn(i32, i32) -> i32) -> EvalResult<'ast>{
     let value_mapping = |value: &EvalValue| match value {
         EvalValue::IntValue(i) => Ok(*i),
         _ => Err(EvalError::InvalidType)
     };
 
     function_with_reduction(
-        interpreter, &scope, value_mapping, reduction
+        interpreter, scope, raw_args, value_mapping, reduction
     )
-        .map(|i| Rc::new(EvalValue::IntValue(i)))
+        .map(|i| EvalValue::IntValue(i).to_ref())
 }
 
-fn builtin_add<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
-    integer_reduction(interpreter,scope,|a,b| a+b)
+fn builtin_add<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    integer_reduction(interpreter, scope, raw_args,|a,b| a+b)
 }
 
-fn builtin_minus<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
-    integer_reduction(interpreter,scope,|a,b| a-b)
+fn builtin_minus<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    integer_reduction(interpreter, scope, raw_args, |a,b| a-b)
 }
 
-fn builtin_modulo<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
-    integer_reduction(interpreter,scope,|a,b| a%b)
+fn builtin_modulo<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    integer_reduction(interpreter, scope, raw_args, |a,b| a%b)
 }
+/*
+fn try_get_arg<'ast>(scope: ScopeRef<'ast>)
 
 //variable assignment, non mutable
-fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
+fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
     let identifier = match get_ref_val(scope.vararg().get(0).unwrap()) {
         SExpression::Symbol(i) => Ok(i),
         _ => Err(EvalError::InvalidType)
@@ -84,8 +83,11 @@ fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> 
     Ok(evaluated)
 }
 
+ */
+
 pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
     vec![
+
         BuiltinFunction{
             callback: builtin_add,
             name: "+",
@@ -102,9 +104,12 @@ pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
             callback: builtin_print,
             name: "print"
         },
+        /*
         BuiltinFunction{
             callback: builtin_let,
             name: "let"
         }
+
+         */
     ]
 }
