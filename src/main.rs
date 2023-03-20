@@ -12,7 +12,15 @@ use crate::lexer::Token;
 fn main()->(){
 
   let mut lexer = Lexer::from_text("\
-    (if () 6 2)
+    (fn sum [n]
+      [
+        (if (<= n 0)
+          0
+          (+ n (sum (- n 1)))
+        )
+      ]
+    )
+    (sum 100)
     ");
   let mut iter = lexer.into_iter();
 
