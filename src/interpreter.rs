@@ -4,8 +4,8 @@ use std::fmt::{Debug, Display, Formatter, Octal, Write};
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
-use crate::builtin_functions::builtin_functions;
 use crate::scope::{Scope, ScopeRef};
+use crate::stdlib::std_lib_functions;
 
 pub struct Interpreter<'ast> {
     ast: &'ast SExpression,
@@ -78,7 +78,7 @@ fn env_scope<'ast>() -> ScopeRef<'ast> {
     let scope = Scope::new();
     scope.insert("answer_to_all".to_string(),EvalValue::IntValue(42).to_ref());
     scope.insert("true".to_string(), EvalValue::True.to_ref());
-    for bi in builtin_functions().iter() {
+    for bi in std_lib_functions().iter() {
         scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi.callback)).to_ref())
     }
     scope

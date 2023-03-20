@@ -2,8 +2,8 @@ mod lexer;
 mod parser;
 mod ast;
 mod interpreter;
-mod builtin_functions;
 mod scope;
+mod stdlib;
 
 use lexer::{Lexer, TokenValue};
 use crate::interpreter::{EvalResult, Interpreter};
