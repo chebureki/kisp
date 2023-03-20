@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
 use crate::builtin_functions::builtin_functions;
-use crate::scope::Scope;
+use crate::scope::{Scope, ScopeRef};
 
 pub struct Interpreter<'ast> {
     ast: &'ast SExpression,
@@ -51,7 +51,7 @@ pub enum EvalError{
     Reassignment,
 }
 
-fn env_scope<'ast>() -> Rc<Scope<'ast>> {
+fn env_scope<'ast>() -> ScopeRef<'ast> {
     let scope = Scope::new();
     scope.insert("answer_to_all".to_string(),Rc::new(EvalValue::IntValue(42)));
 
@@ -63,7 +63,7 @@ fn env_scope<'ast>() -> Rc<Scope<'ast>> {
     scope
 }
 
-pub type InternalCallback<'ast> = fn(&Interpreter<'ast>,Rc<Scope<'ast>>) -> EvalResult<'ast>;
+pub type InternalCallback<'ast> = fn(&Interpreter<'ast>,ScopeRef<'ast>) -> EvalResult<'ast>;
 impl fmt::Debug for Callable<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         todo!()
@@ -85,7 +85,7 @@ impl <'ast> Interpreter<'ast>{
         }
     }
 
-    pub fn eval_expression(&self, scope: &Rc<Scope<'ast>>, expression: &'ast SExpression) -> EvalResult<'ast> {
+    pub fn eval_expression(&self, scope: &ScopeRef<'ast>, expression: &'ast SExpression) -> EvalResult<'ast> {
         match expression {
             SExpression::Symbol(i) => scope.lookup(i).map_or(
                 Err(EvalError::UnknownSymbol(i.clone())),
@@ -97,7 +97,7 @@ impl <'ast> Interpreter<'ast>{
         }
     }
 
-    fn eval_callable(&self, scope: &Rc<Scope<'ast>>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
+    fn eval_callable(&self, scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
         match callable {
             Callable::Internal(callback) => {
                 let vararg = args.iter().map(|e| Rc::new(EvalValue::ExpressionRef(e))).collect();
@@ -108,7 +108,7 @@ impl <'ast> Interpreter<'ast>{
         }
     }
 
-    fn eval_list(&self, scope: &Rc<Scope<'ast>>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+    fn eval_list(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
         if expressions.is_empty(){
             return Ok(Rc::new(EvalValue::Unit)); //not sure how well this notation is, but whatever
         }
@@ -121,7 +121,7 @@ impl <'ast> Interpreter<'ast>{
         self.eval_callable(scope, callable, tail)
     }
 
-    fn eval_list_block_iter(&self, scope: &Rc<Scope<'ast>>, iterator: &mut Iter<'ast, SExpression>, last: Rc<EvalValue<'ast>>) -> EvalResult<'ast> {
+    fn eval_list_block_iter(&self, scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: Rc<EvalValue<'ast>>) -> EvalResult<'ast> {
         match iterator.next() {
             None => Ok(last),
             Some(exp) =>
@@ -129,7 +129,7 @@ impl <'ast> Interpreter<'ast>{
         }
     }
 
-    fn eval_list_block(&self, scope: &Rc<Scope<'ast>>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+    fn eval_list_block(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
         self.eval_list_block_iter(scope, &mut expressions.iter(), Rc::new(EvalValue::Unit))
     }
 }

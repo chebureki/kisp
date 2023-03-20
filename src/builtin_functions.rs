@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::SExpression;
 use crate::interpreter::{EvalError, EvalResult, EvalValue, InternalCallback, Interpreter};
-use crate::scope::Scope;
+use crate::scope::{Scope, ScopeRef};
 
 pub struct BuiltinFunction<'ast>{
     pub callback: InternalCallback<'ast>,
@@ -17,7 +17,7 @@ fn get_ref_val<'ast>(arg: &Rc<EvalValue<'ast>>) -> &'ast SExpression {
     }
 }
 
-fn builtin_print<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) -> EvalResult<'ast> {
+fn builtin_print<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
     let vals= scope.vararg().into_iter()
         .map(get_ref_val)
         .map(|exp| interpreter.eval_expression(&scope, exp))
@@ -28,7 +28,7 @@ fn builtin_print<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) 
     Ok(Rc::new(EvalValue::Unit))
 }
 
-fn function_with_reduction<'ast, T>(interpreter: &Interpreter<'ast>, scope: &Rc<Scope<'ast>>, value_mapping: fn(&EvalValue<'ast>) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError>
+fn function_with_reduction<'ast, T>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, value_mapping: fn(&EvalValue<'ast>) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError>
     //where T: Copy
 {
     let values: Result<Vec<T>, EvalError>=
@@ -43,7 +43,7 @@ fn function_with_reduction<'ast, T>(interpreter: &Interpreter<'ast>, scope: &Rc<
     }
 }
 
-fn integer_reduction<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>, reduction: fn(i32, i32) -> i32) -> EvalResult<'ast>{
+fn integer_reduction<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>, reduction: fn(i32, i32) -> i32) -> EvalResult<'ast>{
     let value_mapping = |value: &EvalValue| match value {
         EvalValue::IntValue(i) => Ok(*i),
         _ => Err(EvalError::InvalidType)
@@ -55,20 +55,20 @@ fn integer_reduction<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast
         .map(|i| Rc::new(EvalValue::IntValue(i)))
 }
 
-fn builtin_add<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) -> EvalResult<'ast> {
+fn builtin_add<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
     integer_reduction(interpreter,scope,|a,b| a+b)
 }
 
-fn builtin_minus<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) -> EvalResult<'ast> {
+fn builtin_minus<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
     integer_reduction(interpreter,scope,|a,b| a-b)
 }
 
-fn builtin_modulo<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) -> EvalResult<'ast> {
+fn builtin_modulo<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
     integer_reduction(interpreter,scope,|a,b| a%b)
 }
 
 //variable assignment, non mutable
-fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: Rc<Scope<'ast>>) -> EvalResult<'ast> {
+fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: ScopeRef<'ast>) -> EvalResult<'ast> {
     let identifier = match get_ref_val(scope.vararg().get(0).unwrap()) {
         SExpression::Symbol(i) => Ok(i),
         _ => Err(EvalError::InvalidType)

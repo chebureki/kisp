@@ -5,9 +5,9 @@ use std::rc::{Rc, Weak};
 use crate::ast::SExpression;
 use crate::interpreter::EvalValue;
 
-
+pub type ScopeRef<'ast> = Rc<Scope<'ast>>;
 pub struct Scope<'ast> {
-    pub parent: Option<Rc<Scope<'ast>>>,
+    pub parent: Option<ScopeRef<'ast>>,
     entries: RefCell<HashMap<String, Rc<EvalValue<'ast>>>>,
     vararg: Vec<Rc<EvalValue<'ast>>>
 }
