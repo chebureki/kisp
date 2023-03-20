@@ -1,12 +1,12 @@
 use crate::ast::SExpression;
-use crate::interpreter::{EvalResult, EvalValue, Interpreter};
+use crate::interpreter::{EvalResult, EvalValue};
 use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 use crate::stdlib::util::{evaluated_args, func};
 
-fn builtin_print<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_print<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
     let vals: Vec<String> =
-        evaluated_args(interpreter,scope,raw_args)?.iter()
+        evaluated_args(scope,raw_args)?.iter()
             .map(|v|v.to_string())
             .collect();
     //.collect::<CollectedResult>()?;

@@ -1,11 +1,11 @@
 use crate::ast::SExpression;
-use crate::interpreter::{Callable, EvalError, EvalResult, EvalValue, Function, Interpreter};
+use crate::interpreter::{Callable, eval_expression, EvalError, EvalResult, EvalValue, Function};
 use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 use crate::stdlib::util::{func, try_pos_arg};
 
 //variable assignment, non mutable
-fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_let<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
     let identifier = match try_pos_arg(raw_args,0) ?{
         SExpression::Symbol(i) => Ok(i),
         _ => Err(EvalError::InvalidType)
@@ -15,7 +15,7 @@ fn builtin_let<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, ra
     }
 
     let expression = try_pos_arg(raw_args,1)?;
-    let evaluated = interpreter.eval_expression(&scope, expression)?;
+    let evaluated = eval_expression(&scope, expression)?;
     scope.insert(identifier.clone(), evaluated.clone());
     Ok(evaluated)
 }
@@ -31,7 +31,7 @@ fn builtin_function_get_arguments<'ast>(raw_idents: &Vec<SExpression>) -> Result
         .collect()
 }
 
-fn builtin_function_declaration<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_function_declaration<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
     let name: String = match try_pos_arg(raw_args, 0)? {
         SExpression::Symbol(i) => i.clone(),
         _ => return Err(EvalError::InvalidType),
@@ -54,14 +54,14 @@ fn builtin_function_declaration<'ast>(interpreter: &Interpreter<'ast>, scope: &S
     Ok(function_value)
 }
 
-fn builtin_if_declarative<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
-    let condition = interpreter.eval_expression(scope, try_pos_arg(raw_args, 0)?)?;
+fn builtin_if_declarative<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    let condition = eval_expression(scope, try_pos_arg(raw_args, 0)?)?;
     let else_expression = try_pos_arg(raw_args, 2).ok();
     let then_expression = try_pos_arg(raw_args, 1)?;
     match condition.as_ref() {
-        EvalValue::Unit if else_expression.is_some() => interpreter.eval_expression(scope, else_expression.unwrap()),
+        EvalValue::Unit if else_expression.is_some() => eval_expression(scope, else_expression.unwrap()),
         EvalValue::Unit if else_expression.is_none() => Ok(EvalValue::Unit.to_ref()),
-        _ => interpreter.eval_expression(scope, then_expression)
+        _ => eval_expression(scope, then_expression)
     }
 }
 

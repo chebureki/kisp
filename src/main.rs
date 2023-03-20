@@ -6,7 +6,7 @@ mod scope;
 mod stdlib;
 
 use lexer::{Lexer, TokenValue};
-use crate::interpreter::{EvalResult, Interpreter};
+use crate::interpreter::{eval_root, EvalResult};
 use crate::lexer::Token;
 
 fn main()->(){
@@ -25,8 +25,7 @@ fn main()->(){
   let mut iter = lexer.into_iter();
 
   let ast = parser::parse(&mut iter).expect("failed ast");
-  let interpreter = Interpreter::new(&ast);
-  let result = interpreter.eval();
+  let result = eval_root(&ast);
 
   match result {
     Ok(data) => {println!("result: {}", data);}

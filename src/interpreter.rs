@@ -7,11 +7,6 @@ use crate::ast::SExpression;
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
-pub struct Interpreter<'ast> {
-    ast: &'ast SExpression,
-    //test: RefCell<u32>,
-}
-
 pub struct Function<'ast>{
     in_scope: ScopeRef<'ast>,
     name: String,
@@ -84,7 +79,7 @@ fn env_scope<'ast>() -> ScopeRef<'ast> {
     scope
 }
 
-pub type InternalCallback<'ast> = fn(&Interpreter<'ast>, &'_ ScopeRef<'ast>, &'ast [SExpression]) -> EvalResult<'ast>;
+pub type InternalCallback<'ast> = fn(&'_ ScopeRef<'ast>, &'ast [SExpression]) -> EvalResult<'ast>;
 impl fmt::Debug for Callable<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         todo!()
@@ -92,75 +87,69 @@ impl fmt::Debug for Callable<'_> {
 }
 pub type EvalResult<'ast> = Result<EvalValueRef<'ast>,EvalError>;
 
-impl <'ast> Interpreter<'ast>{
-    pub fn new(ast: &'ast SExpression) -> Interpreter<'ast> {
-        Interpreter{ast}
+pub fn eval_root<'ast>(ast: &'ast SExpression) -> EvalResult<'ast> {
+    let env = env_scope::<'ast>();
+    if let SExpression::Block(expressions) = ast {
+        eval_block(&env, expressions)
+    }else {
+        panic!("received invalid ast")
     }
+}
 
-    pub fn eval(&self) -> EvalResult<'ast> {
-        let env = env_scope::<'ast>();
-        if let SExpression::Block(expressions) = self.ast {
-            self.eval_block(&env, expressions)
-        }else {
-            panic!("received invalid ast")
-        }
+pub fn eval_expression<'ast>(scope: &ScopeRef<'ast>, expression: &'ast SExpression) -> EvalResult<'ast> {
+    match expression {
+        SExpression::Symbol(i) => scope.lookup(i).map_or(
+            Err(EvalError::UnknownSymbol(i.clone())),
+            |v| Ok(v)
+        ),
+        SExpression::Number(i) => Ok(EvalValue::IntValue(*i).to_ref()),
+        SExpression::List(expressions) => eval_list(scope, expressions),
+        SExpression::Block(expressions) => eval_block(scope, expressions),
+        _ => todo!(),
     }
+}
 
-    pub fn eval_expression(&self, scope: &ScopeRef<'ast>, expression: &'ast SExpression) -> EvalResult<'ast> {
-        match expression {
-            SExpression::Symbol(i) => scope.lookup(i).map_or(
-                Err(EvalError::UnknownSymbol(i.clone())),
-                |v| Ok(v)
-            ),
-            SExpression::Number(i) => Ok(EvalValue::IntValue(*i).to_ref()),
-            SExpression::List(expressions) => self.eval_list(scope, expressions),
-            SExpression::Block(expressions) => self.eval_block(scope, expressions),
-            _ => todo!(),
-        }
+fn eval_function<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression], function: &Function<'ast>) -> EvalResult<'ast> {
+    let function_scope = scope.enter();
+
+    for (identifier, expression) in function.arguments.iter().zip(args) {
+        function_scope.insert(identifier.clone(), eval_expression(scope, expression)?);
     }
+    eval_expression(&function_scope, function.body)
+}
 
-    fn eval_function(&self, scope: &ScopeRef<'ast>, args: &'ast [SExpression], function: &Function<'ast>) -> EvalResult<'ast> {
-        let function_scope = scope.enter();
-
-        for (identifier, expression) in function.arguments.iter().zip(args) {
-            function_scope.insert(identifier.clone(), self.eval_expression(scope, expression)?);
-        }
-        self.eval_expression(&function_scope, function.body)
+fn eval_callable<'ast>(scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
+    match callable {
+        Callable::Internal(internal_callback) => {
+            //flat scope and args are manually evaluated
+            internal_callback(scope, args)
+        },
+        Callable::Function(function) => eval_function(scope, args, function),
     }
+}
 
-    fn eval_callable(&self, scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
-        match callable {
-            Callable::Internal(internal_callback) => {
-                //flat scope and args are manually evaluated
-                internal_callback(self, scope, args)
-            },
-            Callable::Function(function) => self.eval_function(scope, args, function),
-        }
+fn eval_list<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+    if expressions.is_empty(){
+        return Ok(EvalValue::Unit.to_ref()); //not sure how well this notation is, but whatever
     }
+    let head_value = eval_expression(scope, expressions.first().unwrap())?;
+    let tail = &expressions[1..];
+    let callable = match head_value.as_ref() {
+        EvalValue::CallableValue(c) => {Ok(c)},
+        _ => Err(EvalError::CallingNonCallable)
+    }?;
+    eval_callable(scope, callable, tail)
+}
 
-    fn eval_list(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
-        if expressions.is_empty(){
-            return Ok(EvalValue::Unit.to_ref()); //not sure how well this notation is, but whatever
-        }
-        let head_value = self.eval_expression(scope, expressions.first().unwrap())?;
-        let tail = &expressions[1..];
-        let callable = match head_value.as_ref() {
-            EvalValue::CallableValue(c) => {Ok(c)},
-            _ => Err(EvalError::CallingNonCallable)
-        }?;
-        self.eval_callable(scope, callable, tail)
+fn eval_block_iter<'ast>(scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: EvalValueRef<'ast>) -> EvalResult<'ast> {
+    match iterator.next() {
+        None => Ok(last),
+        Some(exp) =>
+            eval_expression(scope, exp).and_then(|v| eval_block_iter(scope, iterator, v))
     }
+}
 
-    fn eval_block_iter(&self, scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: EvalValueRef<'ast>) -> EvalResult<'ast> {
-        match iterator.next() {
-            None => Ok(last),
-            Some(exp) =>
-                self.eval_expression(scope, exp).and_then(|v| self.eval_block_iter(scope, iterator, v))
-        }
-    }
-
-    fn eval_block(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
-        let block_scope= scope.enter();
-        self.eval_block_iter(&block_scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
-    }
+fn eval_block<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+    let block_scope= scope.enter();
+    eval_block_iter(&block_scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
 }

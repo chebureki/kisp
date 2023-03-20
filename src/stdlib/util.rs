@@ -1,5 +1,5 @@
 use crate::ast::SExpression;
-use crate::interpreter::{EvalError, EvalValueRef, InternalCallback, Interpreter};
+use crate::interpreter::{eval_expression, EvalError, EvalValueRef, InternalCallback};
 use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 
@@ -16,8 +16,8 @@ pub fn try_pos_arg<'ast>(raw_args: &'ast [SExpression], pos: usize) -> Result<&'
 
 
 //TODO: make this part of an iterable
-pub fn evaluated_args<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> Result<Vec<EvalValueRef<'ast>>, EvalError> {
+pub fn evaluated_args<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> Result<Vec<EvalValueRef<'ast>>, EvalError> {
     raw_args.iter()
-        .map(|exp| interpreter.eval_expression(scope, exp))
+        .map(|exp| eval_expression(scope, exp))
         .collect::<Result<Vec<EvalValueRef>, EvalError>>()
 }
