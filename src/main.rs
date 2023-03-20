@@ -12,19 +12,7 @@ use crate::lexer::Token;
 fn main()->(){
 
   let mut lexer = Lexer::from_text("\
-    (let x 4)
-    [\
-      (let y 5)
-      (+ x y)
-    ]\
-    (fn test [a b c] (+ a b x))
-    (fn double [n]
-      [
-        (let sum (+ n n))
-        sum
-      ]
-     )
-     (double 8)
+    (if () 6 2)
     ");
   let mut iter = lexer.into_iter();
 

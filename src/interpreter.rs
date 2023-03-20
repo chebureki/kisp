@@ -36,6 +36,8 @@ pub enum EvalValue<'ast>{
     IntValue(i32),
     StringValue(String),
     Unit,
+    True, // anything non nil
+    //False, //really just nil
     //ExpressionRef(&'ast SExpression),
     CallableValue(Callable<'ast>),
 }
@@ -54,6 +56,7 @@ impl Display for EvalValue<'_> {
             EvalValue::IntValue(i) => f.write_str(i.to_string().as_str()),
             EvalValue::StringValue(s) => f.write_str(s.as_str()),
             EvalValue::Unit => f.write_str("unit"),
+            EvalValue::True => f.write_str("true"),
             //EvalValue::ExpressionRef(_) => f.write_str("<expression>"),
             EvalValue::CallableValue(_) => f.write_str("<callable>")
         }
@@ -74,7 +77,7 @@ pub enum EvalError{
 fn env_scope<'ast>() -> ScopeRef<'ast> {
     let scope = Scope::new();
     scope.insert("answer_to_all".to_string(),EvalValue::IntValue(42).to_ref());
-
+    scope.insert("true".to_string(), EvalValue::True.to_ref());
     for bi in builtin_functions().iter() {
         scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi.callback)).to_ref())
     }

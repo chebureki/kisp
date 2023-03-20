@@ -100,7 +100,7 @@ fn builtin_function_get_arguments<'ast>(raw_idents: &Vec<SExpression>) -> Result
         .collect()
 }
 
-fn builtin_function<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_function_declaration<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
     let name: String = match try_pos_arg(raw_args, 0)? {
         SExpression::Symbol(i) => i.clone(),
         _ => return Err(EvalError::InvalidType),
@@ -122,6 +122,20 @@ fn builtin_function<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast
     scope.insert(name, function_value.clone());
     Ok(function_value)
 }
+
+fn builtin_if_declarative<'ast>(interpreter: &Interpreter<'ast>, scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+    let condition = interpreter.eval_expression(scope, try_pos_arg(raw_args, 0)?)?;
+    let else_expression = try_pos_arg(raw_args, 2).ok();
+    let then_expression = try_pos_arg(raw_args, 1)?;
+    match condition.as_ref() {
+        EvalValue::Unit if else_expression.is_some() => interpreter.eval_expression(scope, else_expression.unwrap()),
+        EvalValue::Unit if else_expression.is_none() => Ok(EvalValue::Unit.to_ref()),
+        _ => interpreter.eval_expression(scope, then_expression)
+    }
+}
+
+
+
 
 pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
     vec![
@@ -148,8 +162,12 @@ pub fn builtin_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
             name: "let"
         },
         BuiltinFunction{
-            callback: builtin_function,
+            callback: builtin_function_declaration,
             name: "fn"
+        },
+        BuiltinFunction{
+            callback: builtin_if_declarative,
+            name: "if"
         }
     ]
 }
