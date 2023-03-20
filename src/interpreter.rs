@@ -12,6 +12,12 @@ pub struct Interpreter<'ast> {
     //test: RefCell<u32>,
 }
 
+pub struct Function<'ast>{
+    in_scope: ScopeRef<'ast>,
+    name: String,
+    arguments: Vec<String>,
+    body: &'ast SExpression,
+}
 
 enum Callable<'ast>{
     Internal(InternalCallback<'ast>),
@@ -84,8 +90,8 @@ impl <'ast> Interpreter<'ast>{
 
     pub fn eval(&self) -> EvalResult<'ast> {
         let env = env_scope::<'ast>();
-        if let SExpression::List(expressions) = self.ast {
-            self.eval_list_block(&env, expressions)
+        if let SExpression::Block(expressions) = self.ast {
+            self.eval_block(&env, expressions)
         }else {
             panic!("received invalid ast")
         }
@@ -99,6 +105,7 @@ impl <'ast> Interpreter<'ast>{
             ),
             SExpression::Number(i) => Ok(EvalValue::IntValue(*i).to_ref()),
             SExpression::List(expressions) => self.eval_list(scope, expressions),
+            SExpression::Block(expressions) => self.eval_block(scope, expressions),
             _ => todo!(),
         }
     }
@@ -126,15 +133,15 @@ impl <'ast> Interpreter<'ast>{
         self.eval_callable(scope, callable, tail)
     }
 
-    fn eval_list_block_iter(&self, scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: EvalValueRef<'ast>) -> EvalResult<'ast> {
+    fn eval_block_iter(&self, scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: EvalValueRef<'ast>) -> EvalResult<'ast> {
         match iterator.next() {
             None => Ok(last),
             Some(exp) =>
-                self.eval_expression(scope, exp).and_then(|v| self.eval_list_block_iter(scope, iterator, v))
+                self.eval_expression(scope, exp).and_then(|v| self.eval_block_iter(scope, iterator, v))
         }
     }
 
-    fn eval_list_block(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
-        self.eval_list_block_iter(scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
+    fn eval_block(&self, scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+        self.eval_block_iter(scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
     }
 }

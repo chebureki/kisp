@@ -22,4 +22,5 @@ pub enum SExpression{
     Number(i32),
     DotExpression(Box<SExpression>,Box<SExpression>),
     List(Vec<SExpression>),
+    Block(Vec<SExpression>),
 }

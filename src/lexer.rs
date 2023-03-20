@@ -5,13 +5,15 @@ use std::iter::Peekable;
 mod langchars {
     pub const PARENTHESIS_OPEN: char = '(';
     pub const PARENTHESIS_CLOSE: char = ')';
+    pub const BRACKET_OPEN: char = '[';
+    pub const BRACKET_CLOSE: char = ']';
     //const WHITESPACES: [char; 2] = [' ', '\t'];
     pub const SPACE: char = ' ';
     pub const TAB: char = '\t';
     pub const NEW_LINE: char = '\n';
 
     //disallowed in identifiers
-    pub const NON_IDENTIFIER_CHARS: [char; 5] = [PARENTHESIS_OPEN, PARENTHESIS_CLOSE, SPACE, TAB, NEW_LINE];
+    pub const NON_IDENTIFIER_CHARS: [char; 7] = [PARENTHESIS_OPEN, PARENTHESIS_CLOSE, BRACKET_OPEN, BRACKET_CLOSE, SPACE, TAB, NEW_LINE];
 }
 
 #[derive(Clone, Debug)]
@@ -54,13 +56,15 @@ pub enum Keyword{
 }
  */
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenValue{
     Identifier(String),
     IntToken(i32),
     //StringLiteral(String),
     ParenthesisOpen,
     ParenthesisClose,
+    BracketOpen,
+    BracketClose,
     EOF,
 }
 
@@ -121,6 +125,9 @@ impl<'t> Lexer<'t>{
                 langchars::NEW_LINE => { self.next_token(&cursor.next_line()) }
                 langchars::PARENTHESIS_OPEN => { (Token{cursor: cursor.next_column(), value: TokenValue::ParenthesisOpen}, cursor.next_column()) }
                 langchars::PARENTHESIS_CLOSE => { (Token{cursor: cursor.next_column(), value: TokenValue::ParenthesisClose}, cursor.next_column()) }
+                langchars::BRACKET_OPEN => { (Token{cursor: cursor.next_column(), value: TokenValue::BracketOpen}, cursor.next_column()) }
+                langchars::BRACKET_CLOSE => { (Token{cursor: cursor.next_column(), value: TokenValue::BracketClose}, cursor.next_column()) }
+
                 _ => {
                     let (ident_token, after_cursor) = self.read_identifier(cursor);
                     let TokenValue::Identifier(i) = ident_token else {panic!("didn't receive identifier")};

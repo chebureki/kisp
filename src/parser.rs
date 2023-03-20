@@ -28,18 +28,18 @@ fn parse_iter(stream: &mut TokenStream, acc: Vec<SExpression>) -> Result<Vec<SEx
 pub fn parse(stream: &mut TokenStream) -> Result<SExpression, ParserError> {
     let stack = parse_iter(stream, Vec::new())?;
     match stream.peek().unwrap() {
-        Token{value: TokenValue::EOF, ..} => Ok(SExpression::List(stack)),
+        Token{value: TokenValue::EOF, ..} => Ok(SExpression::Block(stack)),
         Token{value, cursor} => Err(ParserError::NoMatchingParser(cursor.clone())),
     }
 }
 
 fn parse_s_expression(stream: &mut TokenStream) -> ParserResult {
-    let parsers = [parse_atomic, parse_list];
+    let parsers = [parse_atomic, parse_list, parse_block];
     for parser in parsers{
         match parser(stream){
             Ok(Some(data)) => return Ok(Some(data)),
             Err(e) => return Err(e),
-            _ => {}
+            Ok(None) => {/* attempt next parser */}
         }
     }
     Ok(None)
@@ -69,23 +69,31 @@ fn parse_list_iter(stream: &mut TokenStream, acc: Vec<ast::SExpression>) -> Resu
         Err(e) => Err(e)
     }
 }
+
 fn parse_list(stream: &mut TokenStream) -> ParserResult{
-    stream
-        .next_if(|token| matches!(token.value, TokenValue::ParenthesisOpen))
-        .map(|_|parse_list_iter(stream, Vec::new()))
-        .map(|inner|{
-            inner.and_then(|acc|{
-                let mut stream = stream;
-                stream
-                    .next_if(|token| matches!(token.value, TokenValue::ParenthesisClose))
-                    .map(|_| Ok(ast::SExpression::List(acc)))
-                    .unwrap_or(Err(ParserError::UnclosedParenthesis))
-            })
-        })
-        .map(|flat|{
-            match flat {
-                Err(e) => Err(e),
-                Ok(exp) => Ok(Some(exp)),
-            }
-        }).unwrap_or(Ok(None))
+    match parse_listy(stream, TokenValue::ParenthesisOpen, TokenValue::ParenthesisClose)? {
+        None => Ok(None),
+        Some(acc) => Ok(Some(ast::SExpression::List(acc))),
+    }
+}
+
+fn parse_block(stream: &mut TokenStream) -> ParserResult{
+    match parse_listy(stream, TokenValue::BracketOpen, TokenValue::BracketClose)? {
+        None => Ok(None),
+        Some(acc) => Ok(Some(ast::SExpression::Block(acc))),
+    }
+}
+
+fn parse_listy(stream: &mut TokenStream, open: TokenValue, close: TokenValue) -> Result<Option<Vec<SExpression>>, ParserError>{
+    if stream.peek().unwrap().value != open {
+        return Ok(None);
+    }
+    stream.next(); //discard open
+    let inner = parse_list_iter(stream, Vec::new())?;
+    if stream.peek().unwrap().value != close {
+        dbg!(&stream.peek().unwrap().value);
+        return Err(ParserError::UnclosedParenthesis); //TODO: not generic enough
+    }
+    stream.next(); //discard close
+    Ok(Some(inner))
 }
