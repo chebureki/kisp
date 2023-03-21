@@ -2,7 +2,7 @@ use crate::ast::SExpression;
 use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, Function};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
-use crate::stdlib::BuiltinFunction;
+use crate::evalvalue::BuiltinFunction;
 use crate::stdlib::util::{func, try_pos_arg};
 
 //variable assignment, non mutable

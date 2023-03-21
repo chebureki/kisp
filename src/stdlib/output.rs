@@ -1,7 +1,7 @@
 use crate::ast::SExpression;
 use crate::evalvalue::{EvalResult, EvalValue};
 use crate::scope::ScopeRef;
-use crate::stdlib::BuiltinFunction;
+use crate::evalvalue::BuiltinFunction;
 use crate::stdlib::util::{evaluated_args, func};
 
 fn builtin_print(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {

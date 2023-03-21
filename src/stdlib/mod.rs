@@ -1,4 +1,4 @@
-use crate::evalvalue::InternalCallback;
+use crate::evalvalue::{BuiltinFunction, InternalCallback};
 use crate::stdlib::arithmetic::std_arithmetic;
 use crate::stdlib::comparison::std_comparison;
 use crate::stdlib::lang::std_lang;
@@ -10,10 +10,6 @@ mod output;
 mod comparison;
 mod lang;
 
-pub struct BuiltinFunction{
-    pub callback: InternalCallback,
-    pub name: &'static str
-}
 
 pub fn std_lib_functions() -> Vec<BuiltinFunction> {
     vec![

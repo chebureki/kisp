@@ -1,7 +1,7 @@
 use crate::ast::SExpression;
 use crate::evalvalue::{EvalError, EvalResult, EvalValue};
 use crate::scope::ScopeRef;
-use crate::stdlib::BuiltinFunction;
+use crate::evalvalue::BuiltinFunction;
 use crate::stdlib::util::{evaluated_args, func};
 
 fn function_with_reduction<T>(scope: &ScopeRef, raw_args: &'_ [SExpression], value_mapping: fn(&EvalValue) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {

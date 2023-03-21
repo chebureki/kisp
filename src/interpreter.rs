@@ -13,8 +13,8 @@ fn env_scope() -> ScopeRef {
     let scope = Scope::new();
     scope.insert("answer_to_all".to_string(),EvalValue::IntValue(42).to_ref());
     scope.insert("true".to_string(), EvalValue::True.to_ref());
-    for bi in std_lib_functions().iter() {
-        scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi.callback)).to_ref())
+    for bi in std_lib_functions().into_iter() {
+        scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi)).to_ref())
     }
     scope
 }
@@ -57,9 +57,9 @@ pub(crate) fn eval_function(scope: &ScopeRef, args: &'_ [SExpression], function:
 
 pub(crate) fn eval_callable(scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression]) -> EvalResult {
     match callable {
-        Callable::Internal(internal_callback) => {
+        Callable::Internal(bi) => {
             //flat scope and args are manually evaluated
-            internal_callback(scope, args)
+            (bi.callback)(scope, args)
         },
         Callable::Function(function) => eval_function(scope, args, function),
     }

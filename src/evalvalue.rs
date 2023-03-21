@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::rc::Rc;
 use crate::ast::SExpression;
 use crate::scope::ScopeRef;
@@ -18,9 +18,14 @@ impl Function{
 }
 
 pub enum Callable{
-    Internal(InternalCallback),
+    Internal(BuiltinFunction),
     Function(Function),
     //Expression(&'_ SExpression),
+}
+
+pub struct BuiltinFunction{
+    pub callback: InternalCallback,
+    pub name: &'static str
 }
 
 #[derive(Debug)]
@@ -50,7 +55,7 @@ impl Display for EvalValue {
             EvalValue::Unit => f.write_str("unit"),
             EvalValue::True => f.write_str("true"),
             //EvalValue::ExpressionRef(_) => f.write_str("<expression>"),
-            EvalValue::CallableValue(_) => f.write_str("<callable>")
+            EvalValue::CallableValue(c) => c.fmt(f),
         }
     }
 }
@@ -71,7 +76,10 @@ pub enum EvalError{
 pub type InternalCallback = fn(&'_ ScopeRef, &[SExpression]) -> EvalResult;
 impl fmt::Debug for Callable{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        match self {
+            Callable::Internal(i) => f.write_fmt(format_args!("<internal: {}>", i.name)),
+            Callable::Function(func) => f.write_fmt(format_args!("<function: {}>", func.name)),
+        }
     }
 }
 pub type EvalResult = Result<EvalValueRef,EvalError>;
