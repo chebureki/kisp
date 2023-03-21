@@ -1,4 +1,4 @@
-use crate::interpreter::InternalCallback;
+use crate::evalvalue::InternalCallback;
 use crate::stdlib::arithmetic::std_arithmetic;
 use crate::stdlib::comparison::std_comparison;
 use crate::stdlib::lang::std_lang;

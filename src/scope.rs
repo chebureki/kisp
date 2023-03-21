@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::process::id;
 use std::rc::{Rc, Weak};
 use crate::ast::SExpression;
-use crate::interpreter::{EvalError, EvalValue};
+use crate::evalvalue::{EvalError, EvalValue};
 
 const MAX_STACK_DEPTH: usize = 420;
 

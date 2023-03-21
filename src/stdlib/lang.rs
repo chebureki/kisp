@@ -1,5 +1,6 @@
 use crate::ast::SExpression;
-use crate::interpreter::{Callable, eval_expression, EvalError, EvalResult, EvalValue, Function};
+use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, Function};
+use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 use crate::stdlib::util::{func, try_pos_arg};

@@ -1,5 +1,5 @@
 use crate::ast::SExpression;
-use crate::interpreter::{EvalResult, EvalValue};
+use crate::evalvalue::{EvalResult, EvalValue};
 use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 use crate::stdlib::util::{evaluated_args, func};

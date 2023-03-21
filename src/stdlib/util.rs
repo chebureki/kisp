@@ -1,5 +1,6 @@
 use crate::ast::SExpression;
-use crate::interpreter::{eval_expression, EvalError, EvalValueRef, InternalCallback};
+use crate::interpreter::eval_expression;
+use crate::evalvalue::{EvalError, EvalValueRef, InternalCallback};
 use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 

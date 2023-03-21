@@ -4,3 +4,4 @@ pub mod ast;
 pub mod interpreter;
 mod scope;
 mod stdlib;
+pub mod evalvalue;
