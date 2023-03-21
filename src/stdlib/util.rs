@@ -14,6 +14,10 @@ pub fn try_pos_arg(raw_args: &'_ [SExpression], pos: usize) -> Result<&'_ SExpre
     }
 }
 
+pub fn try_pos_evaluated(scope: &ScopeRef, raw_args: &'_ [SExpression], pos: usize) -> Result<EvalValueRef, EvalError> {
+    eval_expression(scope, try_pos_arg(raw_args,pos)?)
+}
+
 
 //TODO: make this part of an iterable
 pub fn evaluated_args(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> Result<Vec<EvalValueRef>, EvalError> {
