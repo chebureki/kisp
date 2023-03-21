@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use std::thread::scope;
 use crate::ast::SExpression;
-use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function};
+use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
@@ -46,14 +46,15 @@ pub(crate) fn eval_expression(scope: &ScopeRef, expression: &'_ SExpression) -> 
     }
 }
 
-pub(crate) fn eval_function(scope: &ScopeRef, args: &'_ [SExpression], function: &Function) -> EvalResult {
-    let function_scope = scope.enter()?;
+pub(crate) fn eval_with_args(scope: &ScopeRef, raw_args: &'_ [SExpression], arguments: &Vec<String>, expression: &SExpression) -> EvalResult {
+    let new_scope = scope.enter()?;
 
-    for (identifier, expression) in function.arguments.iter().zip(args) {
-        function_scope.insert(identifier.clone(), eval_expression(scope, expression)?);
+    for (identifier, expression) in arguments.iter().zip(raw_args) {
+        new_scope.insert(identifier.clone(), eval_expression(scope, expression)?);
     }
-    eval_expression(&function_scope, &function.body)
+    eval_expression(&new_scope, expression)
 }
+
 
 pub(crate) fn eval_callable(scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression]) -> EvalResult {
     match callable {
@@ -61,7 +62,8 @@ pub(crate) fn eval_callable(scope: &ScopeRef, callable: &Callable, args: &'_ [SE
             //flat scope and args are manually evaluated
             (bi.callback)(scope, args)
         },
-        Callable::Function(function) => eval_function(scope, args, function),
+        Callable::Function(Function{arguments, body,..}) => eval_with_args(scope, args, arguments, body),
+        Callable::Lambda(Lambda{arguments, body, ..}) => eval_with_args(scope, args, arguments, body),
     }
 }
 

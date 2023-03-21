@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter, Write};
+use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 use crate::ast::SExpression;
 use crate::scope::ScopeRef;
@@ -20,7 +20,13 @@ impl Function{
 pub enum Callable{
     Internal(BuiltinFunction),
     Function(Function),
-    //Expression(&'_ SExpression),
+    Lambda(Lambda),
+}
+
+pub struct Lambda {
+    pub in_scope: ScopeRef,
+    pub arguments: Vec<String>,
+    pub body: SExpression,
 }
 
 pub struct BuiltinFunction{
@@ -79,6 +85,7 @@ impl fmt::Debug for Callable{
         match self {
             Callable::Internal(i) => f.write_fmt(format_args!("<internal: {}>", i.name)),
             Callable::Function(func) => f.write_fmt(format_args!("<function: {}>", func.name)),
+            Callable::Lambda(lambda) => f.write_str("<lambda>"),
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::ast::SExpression;
-use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, Function};
+use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, Function, Lambda};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
@@ -32,17 +32,20 @@ fn builtin_function_get_arguments(raw_idents: &Vec<SExpression>) -> Result<Vec<S
         .collect()
 }
 
+fn get_argument_names(raw_args: &'_ SExpression) -> Result<Vec<String>, EvalError> {
+    match raw_args {
+        SExpression::Block(expressions) => builtin_function_get_arguments(expressions),
+        _ => Err(EvalError::InvalidType),
+    }
+}
+
 fn builtin_function_declaration(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     let name: String = match try_pos_arg(raw_args, 0)? {
         SExpression::Symbol(i) => i.clone(),
         _ => return Err(EvalError::InvalidType),
     };
 
-
-    let args: Vec<String> = match try_pos_arg(raw_args, 1)? {
-        SExpression::Block(expressions) => builtin_function_get_arguments(expressions),
-        _ => Err(EvalError::InvalidType),
-    }?;
+    let args: Vec<String> =  get_argument_names(try_pos_arg(raw_args,1)?)?;
     let body: &SExpression = try_pos_arg(raw_args, 2)?;
     let function = Function::from(
         scope.clone(),
@@ -53,6 +56,18 @@ fn builtin_function_declaration(scope: &ScopeRef, raw_args: &'_ [SExpression]) -
     let function_value = EvalValue::CallableValue(Callable::Function(function)).to_ref();
     scope.insert(name, function_value.clone());
     Ok(function_value)
+}
+
+fn builtin_lambda(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
+    let arguments: Vec<String> =  get_argument_names(try_pos_arg(raw_args,0)?)?;
+    let body= try_pos_arg(raw_args, 1)?.clone();
+    let lambda = Lambda{
+        in_scope: scope.clone(),
+        arguments,
+        body,
+    };
+    let lambda_value = EvalValue::CallableValue(Callable::Lambda(lambda)).to_ref();
+    Ok(lambda_value)
 }
 
 fn builtin_if_declarative(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
@@ -71,5 +86,6 @@ pub fn std_lang() -> Vec<BuiltinFunction> {
         func("let", builtin_let),
         func("fn", builtin_function_declaration),
         func("if", builtin_if_declarative),
+        func("lambda", builtin_lambda),
     ]
 }
