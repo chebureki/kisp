@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::iter::Peekable;
-use crate::{ast, Lexer};
-use crate::lexer::{Cursor, Token, TokenIterator, TokenValue};
+use crate::ast;
+use crate::lexer::{Cursor, Token, TokenIterator, TokenValue, Lexer};
 use crate::ast::SExpression;
 use crate::lexer::TokenStream;
 use crate::parser::ParserError::NoMatchingParser;

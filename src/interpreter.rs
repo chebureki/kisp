@@ -88,7 +88,7 @@ impl fmt::Debug for Callable<'_> {
 }
 pub type EvalResult<'ast> = Result<EvalValueRef<'ast>,EvalError>;
 
-pub fn eval_root<'ast>(ast: &'ast SExpression) -> EvalResult<'ast> {
+pub fn eval<'ast>(ast: &'ast SExpression) -> EvalResult<'ast> {
     let env = env_scope::<'ast>();
     if let SExpression::Block(expressions) = ast {
         eval_block(&env, expressions)
@@ -97,7 +97,7 @@ pub fn eval_root<'ast>(ast: &'ast SExpression) -> EvalResult<'ast> {
     }
 }
 
-pub fn eval_expression<'ast>(scope: &ScopeRef<'ast>, expression: &'ast SExpression) -> EvalResult<'ast> {
+pub(crate) fn eval_expression<'ast>(scope: &ScopeRef<'ast>, expression: &'ast SExpression) -> EvalResult<'ast> {
     match expression {
         SExpression::Symbol(i) => scope.lookup(i).map_or(
             Err(EvalError::UnknownSymbol(i.clone())),
@@ -110,7 +110,7 @@ pub fn eval_expression<'ast>(scope: &ScopeRef<'ast>, expression: &'ast SExpressi
     }
 }
 
-fn eval_function<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression], function: &Function<'ast>) -> EvalResult<'ast> {
+pub(crate) fn eval_function<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression], function: &Function<'ast>) -> EvalResult<'ast> {
     let function_scope = scope.enter()?;
 
     for (identifier, expression) in function.arguments.iter().zip(args) {
@@ -119,7 +119,7 @@ fn eval_function<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression], functi
     eval_expression(&function_scope, function.body)
 }
 
-fn eval_callable<'ast>(scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
+pub(crate) fn eval_callable<'ast>(scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
     match callable {
         Callable::Internal(internal_callback) => {
             //flat scope and args are manually evaluated
@@ -129,7 +129,7 @@ fn eval_callable<'ast>(scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: 
     }
 }
 
-fn eval_list<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+pub(crate) fn eval_list<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
     if expressions.is_empty(){
         return Ok(EvalValue::Unit.to_ref()); //not sure how well this notation is, but whatever
     }
@@ -150,7 +150,7 @@ fn eval_block_iter<'ast>(scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpr
     }
 }
 
-fn eval_block<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+pub(crate) fn eval_block<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
     let block_scope= scope.enter()?;
     eval_block_iter(&block_scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
 }
