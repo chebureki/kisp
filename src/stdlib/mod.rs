@@ -10,12 +10,12 @@ mod output;
 mod comparison;
 mod lang;
 
-pub struct BuiltinFunction<'ast>{
-    pub callback: InternalCallback<'ast>,
+pub struct BuiltinFunction{
+    pub callback: InternalCallback,
     pub name: &'static str
 }
 
-pub fn std_lib_functions<'ast>() -> Vec<BuiltinFunction<'ast>> {
+pub fn std_lib_functions() -> Vec<BuiltinFunction> {
     vec![
         std_lang(),
         std_arithmetic(),

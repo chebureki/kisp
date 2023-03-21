@@ -2,6 +2,6 @@ pub mod lexer;
 pub mod parser;
 pub mod ast;
 pub mod interpreter;
-mod scope;
-mod stdlib;
+pub mod scope;
+pub mod stdlib;
 pub mod evalvalue;

@@ -9,7 +9,7 @@ use crate::stdlib::util::{func, try_pos_arg};
 // < > = >= <= !=
 
 //TODO: create some quick type conversion macros
-fn comparison_reduction<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression], operation: fn(i32, i32) -> bool) -> EvalResult<'ast> {
+fn comparison_reduction(scope: &ScopeRef, args: &'_ [SExpression], operation: fn(i32, i32) -> bool) -> EvalResult {
     let head_value = match eval_expression(scope, try_pos_arg(args, 0)?)?.as_ref() {
         EvalValue::IntValue(i) => Ok(*i),
         _ => Err(EvalError::InvalidType),
@@ -27,30 +27,30 @@ fn comparison_reduction<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression],
     Ok(EvalValue::True.to_ref())
 }
 
-fn builtin_gt<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_gt(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     comparison_reduction(scope, raw_args, |h, v| h>v)
 }
-fn builtin_gt_eq<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_gt_eq(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     comparison_reduction( scope, raw_args, |h, v| h>=v)
 }
 
-fn builtin_lt<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_lt(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     comparison_reduction(scope, raw_args, |h, v| h<v)
 }
 
-fn builtin_lt_eq<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_lt_eq(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     comparison_reduction(scope, raw_args, |h, v| h<=v)
 }
 
-fn builtin_eq<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_eq(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     comparison_reduction(scope, raw_args, |h, v| h==v)
 }
 
-fn builtin_neq<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_neq(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     comparison_reduction(scope, raw_args, |h, v| h!=v)
 }
 
-pub fn std_comparison<'ast>() -> Vec<BuiltinFunction<'ast>> {
+pub fn std_comparison() -> Vec<BuiltinFunction> {
     vec![
         func(">", builtin_gt),
         func(">=", builtin_gt_eq),

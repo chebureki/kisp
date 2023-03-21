@@ -8,7 +8,7 @@ use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, EvalValueRef,
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
-fn env_scope<'ast>() -> ScopeRef<'ast> {
+fn env_scope() -> ScopeRef {
     let scope = Scope::new();
     scope.insert("answer_to_all".to_string(),EvalValue::IntValue(42).to_ref());
     scope.insert("true".to_string(), EvalValue::True.to_ref());
@@ -18,16 +18,16 @@ fn env_scope<'ast>() -> ScopeRef<'ast> {
     scope
 }
 
-pub fn eval<'ast>(ast: &'ast SExpression) -> EvalResult<'ast> {
-    let env = env_scope::<'ast>();
-    if let SExpression::Block(expressions) = ast {
-        eval_block(&env, expressions)
-    }else {
-        panic!("received invalid ast")
-    }
+pub fn eval(ast: &'_ SExpression, provided_scope: Option<ScopeRef>) -> (EvalResult, ScopeRef) {
+    let env = if let Some(provided) = provided_scope{
+        provided
+    }else{
+        env_scope()
+    };
+    (eval_expression(&env, ast), env)
 }
 
-pub(crate) fn eval_expression<'ast>(scope: &ScopeRef<'ast>, expression: &'ast SExpression) -> EvalResult<'ast> {
+pub(crate) fn eval_expression(scope: &ScopeRef, expression: &'_ SExpression) -> EvalResult {
     match expression {
         SExpression::Symbol(i) => scope.lookup(i).map_or(
             Err(EvalError::UnknownSymbol(i.clone())),
@@ -40,16 +40,16 @@ pub(crate) fn eval_expression<'ast>(scope: &ScopeRef<'ast>, expression: &'ast SE
     }
 }
 
-pub(crate) fn eval_function<'ast>(scope: &ScopeRef<'ast>, args: &'ast [SExpression], function: &Function<'ast>) -> EvalResult<'ast> {
+pub(crate) fn eval_function(scope: &ScopeRef, args: &'_ [SExpression], function: &Function) -> EvalResult {
     let function_scope = scope.enter()?;
 
     for (identifier, expression) in function.arguments.iter().zip(args) {
         function_scope.insert(identifier.clone(), eval_expression(scope, expression)?);
     }
-    eval_expression(&function_scope, function.body)
+    eval_expression(&function_scope, &function.body)
 }
 
-pub(crate) fn eval_callable<'ast>(scope: &ScopeRef<'ast>, callable: &Callable<'ast>, args: &'ast [SExpression]) -> EvalResult<'ast> {
+pub(crate) fn eval_callable(scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression]) -> EvalResult {
     match callable {
         Callable::Internal(internal_callback) => {
             //flat scope and args are manually evaluated
@@ -59,7 +59,7 @@ pub(crate) fn eval_callable<'ast>(scope: &ScopeRef<'ast>, callable: &Callable<'a
     }
 }
 
-pub(crate) fn eval_list<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+pub(crate) fn eval_list(scope: &ScopeRef, expressions: &'_ Vec<SExpression>) -> EvalResult {
     if expressions.is_empty(){
         return Ok(EvalValue::Unit.to_ref()); //not sure how well this notation is, but whatever
     }
@@ -72,7 +72,7 @@ pub(crate) fn eval_list<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SEx
     eval_callable(scope, callable, tail)
 }
 
-fn eval_block_iter<'ast>(scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpression>, last: EvalValueRef<'ast>) -> EvalResult<'ast> {
+fn eval_block_iter(scope: &ScopeRef, iterator: &mut Iter<'_, SExpression>, last: EvalValueRef) -> EvalResult {
     match iterator.next() {
         None => Ok(last),
         Some(exp) =>
@@ -80,7 +80,7 @@ fn eval_block_iter<'ast>(scope: &ScopeRef<'ast>, iterator: &mut Iter<'ast, SExpr
     }
 }
 
-pub(crate) fn eval_block<'ast>(scope: &ScopeRef<'ast>, expressions: &'ast Vec<SExpression>) -> EvalResult<'ast> {
+pub(crate) fn eval_block(scope: &ScopeRef, expressions: &'_ Vec<SExpression>) -> EvalResult {
     let block_scope= scope.enter()?;
     eval_block_iter(&block_scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
 }

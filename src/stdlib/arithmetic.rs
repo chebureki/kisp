@@ -4,7 +4,7 @@ use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 use crate::stdlib::util::{evaluated_args, func};
 
-fn function_with_reduction<'ast, T>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression], value_mapping: fn(&EvalValue<'ast>) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {
+fn function_with_reduction<T>(scope: &ScopeRef, raw_args: &'_ [SExpression], value_mapping: fn(&EvalValue) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {
     evaluated_args(scope,raw_args)?
         .iter()
         .map(|r| value_mapping(r.as_ref()))
@@ -14,7 +14,7 @@ fn function_with_reduction<'ast, T>(scope: &ScopeRef<'ast>, raw_args: &'ast [SEx
         .map_or(Err(EvalError::MissingArgument),|v|Ok(v))
 }
 
-fn integer_reduction<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression], reduction: fn(i32, i32) -> i32) -> EvalResult<'ast>{
+fn integer_reduction(scope: &ScopeRef, raw_args: &'_ [SExpression], reduction: fn(i32, i32) -> i32) -> EvalResult{
     let value_mapping = |value: &EvalValue| match value {
         EvalValue::IntValue(i) => Ok(*i),
         _ => Err(EvalError::InvalidType)
@@ -26,19 +26,19 @@ fn integer_reduction<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]
         .map(|i| EvalValue::IntValue(i).to_ref())
 }
 
-fn builtin_add<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_add(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     integer_reduction(scope, raw_args,|a,b| a+b)
 }
 
-fn builtin_minus<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_minus(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     integer_reduction( scope, raw_args, |a,b| a-b)
 }
 
-fn builtin_modulo<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_modulo(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     integer_reduction( scope, raw_args, |a,b| a%b)
 }
 
-pub fn std_arithmetic<'ast>() -> Vec<BuiltinFunction<'ast>> {
+pub fn std_arithmetic() -> Vec<BuiltinFunction> {
     vec![
         func("+", builtin_add),
         func("-", builtin_minus),

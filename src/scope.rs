@@ -3,19 +3,19 @@ use std::collections::HashMap;
 use std::process::id;
 use std::rc::{Rc, Weak};
 use crate::ast::SExpression;
-use crate::evalvalue::{EvalError, EvalValue};
+use crate::evalvalue::{EvalError, EvalValue, EvalValueRef};
 
 const MAX_STACK_DEPTH: usize = 420;
 
-pub type ScopeRef<'ast> = Rc<Scope<'ast>>;
-pub struct Scope<'ast> {
+pub type ScopeRef = Rc<Scope>;
+pub struct Scope {
     depth: usize,
-    pub parent: Option<ScopeRef<'ast>>,
-    entries: RefCell<HashMap<String, Rc<EvalValue<'ast>>>>,
-    vararg: Vec<Rc<EvalValue<'ast>>>
+    pub parent: Option<ScopeRef>,
+    entries: RefCell<HashMap<String, EvalValueRef>>,
+    vararg: Vec<Rc<EvalValue>>
 }
 
-impl <'ast> Scope<'ast> {
+impl Scope {
     pub fn new() -> Rc<Self> {
         Rc::new(Scope{depth:0,parent: None, entries: Default::default(), vararg: Default::default()})
     }
@@ -24,11 +24,11 @@ impl <'ast> Scope<'ast> {
         self.enter_with_vararg(vec![])
     }
 
-    pub fn vararg<'scope>(self: &'scope Rc<Self>) -> &'scope Vec<Rc<EvalValue<'ast>>> {
+    pub fn vararg<'scope>(self: &'scope Rc<Self>) -> &'scope Vec<Rc<EvalValue>> {
         &self.vararg
     }
 
-    pub fn enter_with_vararg(self: &Rc<Self>, vararg: Vec<Rc<EvalValue<'ast>>>) -> Result<Rc<Self>,EvalError> {
+    pub fn enter_with_vararg(self: &Rc<Self>, vararg: Vec<Rc<EvalValue>>) -> Result<Rc<Self>,EvalError> {
         if (self.depth >= MAX_STACK_DEPTH) {
             Err(EvalError::StackOverflow)
         } else{
@@ -38,7 +38,7 @@ impl <'ast> Scope<'ast> {
         }
     }
 
-    pub fn lookup(&self, identifier: &String) -> Option<Rc<EvalValue<'ast>>> {
+    pub fn lookup(&self, identifier: &String) -> Option<Rc<EvalValue>> {
         if let Some(value) = self.entries.borrow().get(identifier) {
             Some(value.clone())
         }else if let Some(parent) = &self.parent {
@@ -48,7 +48,7 @@ impl <'ast> Scope<'ast> {
         }
     }
 
-    pub fn insert(&self, identifier: String, value: Rc<EvalValue<'ast>>) -> () {
+    pub fn insert(&self, identifier: String, value: Rc<EvalValue>) -> () {
         let mut map = self.entries.borrow_mut();
         map.insert(identifier, value);
     }

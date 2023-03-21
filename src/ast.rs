@@ -16,7 +16,7 @@ number = "1" / "2" / " ..." / "9"
 
 empty = " "
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SExpression{
     Symbol(String),
     Number(i32),

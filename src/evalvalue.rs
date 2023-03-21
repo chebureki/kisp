@@ -4,45 +4,45 @@ use std::rc::Rc;
 use crate::ast::SExpression;
 use crate::scope::ScopeRef;
 
-pub struct Function<'ast>{
-    pub in_scope: ScopeRef<'ast>,
+pub struct Function{
+    pub in_scope: ScopeRef,
     pub name: String,
     pub arguments: Vec<String>,
-    pub body: &'ast SExpression,
+    pub body: SExpression,
 }
 
-impl <'ast> Function<'ast> {
-    pub fn from(in_scope: ScopeRef<'ast>, name: String, arguments: Vec<String>, body: &'ast SExpression) -> Function<'ast> {
-        Function{in_scope, name, arguments, body}
+impl Function{
+    pub fn from(in_scope: ScopeRef, name: String, arguments: Vec<String>, body: &SExpression) -> Function {
+        Function{in_scope, name, arguments, body: body.clone()}
     }
 }
 
-pub enum Callable<'ast>{
-    Internal(InternalCallback<'ast>),
-    Function(Function<'ast>),
-    //Expression(&'ast SExpression),
+pub enum Callable{
+    Internal(InternalCallback),
+    Function(Function),
+    //Expression(&'_ SExpression),
 }
 
 #[derive(Debug)]
-pub enum EvalValue<'ast>{
+pub enum EvalValue{
     IntValue(i32),
     StringValue(String),
     Unit,
     True, // anything non nil
     //False, //really just nil
-    //ExpressionRef(&'ast SExpression),
-    CallableValue(Callable<'ast>),
+    //ExpressionRef(&'_ SExpression),
+    CallableValue(Callable),
 }
 
-pub type EvalValueRef<'ast> = Rc<EvalValue<'ast>>;
+pub type EvalValueRef = Rc<EvalValue>;
 
-impl <'ast> EvalValue<'ast>{
-    pub fn to_ref(self) -> EvalValueRef<'ast>{
+impl EvalValue{
+    pub fn to_ref(self) -> EvalValueRef{
         Rc::new(self)
     }
 }
 
-impl Display for EvalValue<'_> {
+impl Display for EvalValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             EvalValue::IntValue(i) => f.write_str(i.to_string().as_str()),
@@ -68,10 +68,10 @@ pub enum EvalError{
 }
 
 
-pub type InternalCallback<'ast> = fn(&'_ ScopeRef<'ast>, &'ast [SExpression]) -> EvalResult<'ast>;
-impl fmt::Debug for Callable<'_> {
+pub type InternalCallback = fn(&'_ ScopeRef, &[SExpression]) -> EvalResult;
+impl fmt::Debug for Callable{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         todo!()
     }
 }
-pub type EvalResult<'ast> = Result<EvalValueRef<'ast>,EvalError>;
+pub type EvalResult = Result<EvalValueRef,EvalError>;

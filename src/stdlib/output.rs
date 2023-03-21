@@ -4,7 +4,7 @@ use crate::scope::ScopeRef;
 use crate::stdlib::BuiltinFunction;
 use crate::stdlib::util::{evaluated_args, func};
 
-fn builtin_print<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) -> EvalResult<'ast> {
+fn builtin_print(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> EvalResult {
     let vals: Vec<String> =
         evaluated_args(scope,raw_args)?.iter()
             .map(|v|v.to_string())
@@ -15,7 +15,7 @@ fn builtin_print<'ast>(scope: &ScopeRef<'ast>, raw_args: &'ast [SExpression]) ->
     Ok(EvalValue::Unit.to_ref())
 }
 
-pub fn std_output<'ast>() -> Vec<BuiltinFunction<'ast>> {
+pub fn std_output() -> Vec<BuiltinFunction> {
     vec![
         func("print", builtin_print),
     ]
