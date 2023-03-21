@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Pointer, Write};
 use std::rc::Rc;
 use crate::ast::SExpression;
 use crate::scope::ScopeRef;
@@ -35,6 +35,9 @@ pub struct BuiltinFunction{
 }
 
 #[derive(Debug)]
+pub struct List(pub Vec<EvalValueRef>);
+
+#[derive(Debug)]
 pub enum EvalValue{
     IntValue(i32),
     StringValue(String),
@@ -43,6 +46,7 @@ pub enum EvalValue{
     //False, //really just nil
     //ExpressionRef(&'_ SExpression),
     CallableValue(Callable),
+    List(List),
 }
 
 pub type EvalValueRef = Rc<EvalValue>;
@@ -60,9 +64,17 @@ impl Display for EvalValue {
             EvalValue::StringValue(s) => f.write_str(s.as_str()),
             EvalValue::Unit => f.write_str("unit"),
             EvalValue::True => f.write_str("true"),
-            //EvalValue::ExpressionRef(_) => f.write_str("<expression>"),
             EvalValue::CallableValue(c) => c.fmt(f),
+            EvalValue::List(list) => Display::fmt(list,f),
         }
+    }
+}
+
+impl Display for List {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        //TODO: this seems inefficient
+        let inner = self.0.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(" ");
+        f.write_fmt( format_args!("<list: {}>", inner))
     }
 }
 
