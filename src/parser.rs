@@ -91,7 +91,6 @@ fn parse_listy(stream: &mut TokenStream, open: TokenValue, close: TokenValue) ->
     stream.next(); //discard open
     let inner = parse_list_iter(stream, Vec::new())?;
     if stream.peek().unwrap().value != close {
-        dbg!(&stream.peek().unwrap().value);
         return Err(ParserError::UnclosedParenthesis); //TODO: not generic enough
     }
     stream.next(); //discard close

@@ -3,6 +3,7 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter, Octal, Write};
 use std::rc::Rc;
 use std::slice::Iter;
+use std::thread::scope;
 use crate::ast::SExpression;
 use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function};
 use crate::scope::{Scope, ScopeRef};
@@ -24,7 +25,12 @@ pub fn eval(ast: &'_ SExpression, provided_scope: Option<ScopeRef>) -> (EvalResu
     }else{
         env_scope()
     };
-    (eval_expression(&env, ast), env)
+    let res = match ast {
+        //don't create a new scope!
+        SExpression::Block(entries) => eval_block(&env, entries, true),
+        e => eval_expression(&env, e)
+    };
+    (res, env)
 }
 
 pub(crate) fn eval_expression(scope: &ScopeRef, expression: &'_ SExpression) -> EvalResult {
@@ -35,7 +41,7 @@ pub(crate) fn eval_expression(scope: &ScopeRef, expression: &'_ SExpression) -> 
         ),
         SExpression::Number(i) => Ok(EvalValue::IntValue(*i).to_ref()),
         SExpression::List(expressions) => eval_list(scope, expressions),
-        SExpression::Block(expressions) => eval_block(scope, expressions),
+        SExpression::Block(expressions) => eval_block(scope, expressions, false),
         _ => todo!(),
     }
 }
@@ -80,7 +86,7 @@ fn eval_block_iter(scope: &ScopeRef, iterator: &mut Iter<'_, SExpression>, last:
     }
 }
 
-pub(crate) fn eval_block(scope: &ScopeRef, expressions: &'_ Vec<SExpression>) -> EvalResult {
-    let block_scope= scope.enter()?;
-    eval_block_iter(&block_scope, &mut expressions.iter(), EvalValue::Unit.to_ref())
+pub(crate) fn eval_block(scope: &ScopeRef, expressions: &'_ Vec<SExpression>, flat: bool) -> EvalResult {
+    let block_scope = scope.enter()?;
+    eval_block_iter(if flat {scope} else {&block_scope}, &mut expressions.iter(), EvalValue::Unit.to_ref())
 }
