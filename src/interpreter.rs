@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use std::thread::scope;
 use crate::ast::SExpression;
-use crate::evalvalue::{Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
+use crate::evalvalue::{BuiltinFunction, Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
@@ -46,24 +46,48 @@ pub(crate) fn eval_expression(scope: &ScopeRef, expression: &'_ SExpression) -> 
     }
 }
 
-pub(crate) fn eval_with_args(scope: &ScopeRef, raw_args: &'_ [SExpression], arguments: &Vec<String>, expression: &SExpression) -> EvalResult {
-    let new_scope = scope.enter()?;
+fn populate_scope_with_args(scope: &ScopeRef, values: Vec<EvalValueRef>, arg_names: &Vec<String>) -> () {
+    arg_names.iter()
+        .zip(values)
+        .for_each(
+            |(ident, val)|
+            scope.insert(ident.clone(), val)
+        );
+}
 
-    for (identifier, expression) in arguments.iter().zip(raw_args) {
-        new_scope.insert(identifier.clone(), eval_expression(scope, expression)?);
-    }
+pub(crate) fn eval_with_args(scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression) -> EvalResult {
+    let new_scope = scope.enter()?;
+    populate_scope_with_args(&new_scope, passed_in, arg_names);
     eval_expression(&new_scope, expression)
 }
+
+
+fn eval_all(scope: &ScopeRef, exps: & [SExpression]) -> Result<Vec<EvalValueRef>, EvalError> {
+    exps.iter()
+        .map(|exp| eval_expression(scope, exp))
+        .collect()
+}
+
+pub(crate) fn eval_call_with_values(scope: &ScopeRef, callable: &Callable, args: Vec<EvalValueRef> ) -> EvalResult {
+    match callable {
+        Callable::Internal(BuiltinFunction{callback,..}) => callback(scope, args),
+        Callable::Function(func) => eval_with_args(scope, args, &func.arguments, &func.body),
+        Callable::Lambda(lam) => eval_with_args(scope, args, &lam.arguments, &lam.body),
+    }
+}
+
 
 
 pub(crate) fn eval_callable(scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression]) -> EvalResult {
     match callable {
         Callable::Internal(bi) => {
-            //flat scope and args are manually evaluated
-            (bi.callback)(scope, args)
+            //don't evaluate them
+            let ast_args: Vec<EvalValueRef> = args.iter().map(|exp| EvalValue::ExpressionValue(exp.clone()).to_ref()).collect();
+            (bi.callback)(scope, ast_args)
+            //(bi.callback)(scope, args)
         },
-        Callable::Function(Function{arguments, body,..}) => eval_with_args(scope, args, arguments, body),
-        Callable::Lambda(Lambda{arguments, body, ..}) => eval_with_args(scope, args, arguments, body),
+        Callable::Function(Function{arguments, body,..}) => eval_with_args(scope, eval_all(scope, args)?, arguments, body),
+        Callable::Lambda(Lambda{arguments, body, ..}) => eval_with_args(scope, eval_all(scope, args)?, arguments, body),
     }
 }
 

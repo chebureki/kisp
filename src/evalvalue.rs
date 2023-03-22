@@ -47,6 +47,9 @@ pub enum EvalValue{
     //ExpressionRef(&'_ SExpression),
     CallableValue(Callable),
     List(List),
+
+    //more for internal use, but I could see usage for macros
+    ExpressionValue(SExpression)
 }
 
 pub type EvalValueRef = Rc<EvalValue>;
@@ -66,6 +69,7 @@ impl Display for EvalValue {
             EvalValue::True => f.write_str("true"),
             EvalValue::CallableValue(c) => c.fmt(f),
             EvalValue::List(list) => Display::fmt(list,f),
+            EvalValue::ExpressionValue(_) => f.write_str("<expression>"),
         }
     }
 }
@@ -91,7 +95,7 @@ pub enum EvalError{
 }
 
 
-pub type InternalCallback = fn(&'_ ScopeRef, &[SExpression]) -> EvalResult;
+pub type InternalCallback = fn(&'_ ScopeRef, Vec<EvalValueRef>) -> EvalResult;
 impl fmt::Debug for Callable{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

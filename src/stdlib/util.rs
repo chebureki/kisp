@@ -1,27 +1,35 @@
 use crate::ast::SExpression;
 use crate::interpreter::eval_expression;
-use crate::evalvalue::{BuiltinFunction, EvalError, EvalValueRef, InternalCallback};
+use crate::evalvalue::{BuiltinFunction, EvalError, EvalResult, EvalValue, EvalValueRef, InternalCallback};
 use crate::scope::ScopeRef;
 
 pub fn func(name: &'static str, callback: InternalCallback) -> BuiltinFunction{
     BuiltinFunction{ callback, name }
 }
 
-pub fn try_pos_arg(raw_args: &'_ [SExpression], pos: usize) -> Result<&'_ SExpression, EvalError> {
+pub fn eval_arg(scope: &ScopeRef, arg: &EvalValueRef) -> EvalResult {
+    match arg.as_ref() {
+        EvalValue::ExpressionValue(e) => eval_expression(scope, e),
+        other => Ok(arg.clone()),
+    }
+}
+
+pub fn evaluated_args(scope: &ScopeRef, args: Vec<EvalValueRef>) -> Result<Vec<EvalValueRef>, EvalError> {
+    args.into_iter()
+        .map(|e| eval_arg(scope, &e))
+        .collect()
+}
+
+pub fn try_pos_arg<'args>(raw_args: &'args Vec<EvalValueRef>, pos: usize) -> Result<&'args EvalValueRef, EvalError> {
     match raw_args.get(pos){
         None => Err(EvalError::MissingArgument),
         Some(v) => Ok(v)
     }
 }
 
-pub fn try_pos_evaluated(scope: &ScopeRef, raw_args: &'_ [SExpression], pos: usize) -> Result<EvalValueRef, EvalError> {
-    eval_expression(scope, try_pos_arg(raw_args,pos)?)
-}
-
-
-//TODO: make this part of an iterable
-pub fn evaluated_args(scope: &ScopeRef, raw_args: &'_ [SExpression]) -> Result<Vec<EvalValueRef>, EvalError> {
-    raw_args.iter()
-        .map(|exp| eval_expression(scope, exp))
-        .collect::<Result<Vec<EvalValueRef>, EvalError>>()
+pub fn expect_expression_value<'v>(v: &'v EvalValueRef) -> Result<&'v SExpression, EvalError> {
+    match v.as_ref() {
+        EvalValue::ExpressionValue(e) => Ok(e),
+        _ => Err(EvalError::InvalidType),
+    }
 }
