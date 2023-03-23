@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter, Pointer, Write};
 use std::rc::Rc;
+use std::task::Context;
 use crate::ast::SExpression;
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
@@ -42,8 +43,8 @@ pub struct BuiltInFunctionArgs{
 impl BuiltInFunctionArg{
     pub fn evaluated(&self, scope: &ScopeRef) -> EvalResult {
         match self {
-            BuiltInFunctionArg::Val(v) => Ok(v.clone()),
-            BuiltInFunctionArg::Exp(e) => eval_expression(scope, e),
+            BuiltInFunctionArg::Val(v) => Ok((v.clone(), EvalContext::none())),
+            BuiltInFunctionArg::Exp(e) => eval_expression(EvalContext::none(), scope, e),
         }
     }
 
@@ -68,7 +69,7 @@ impl BuiltInFunctionArgs{
             .map(|a|
                 match a {
                     BuiltInFunctionArg::Val(a) => Ok(a),
-                    BuiltInFunctionArg::Exp(e) => eval_expression(scope, &e),
+                    BuiltInFunctionArg::Exp(e) => eval_expression(EvalContext::none(), scope, &e).map(|v| v.0),
                 }
             ).collect()
     }
@@ -90,6 +91,12 @@ pub struct BuiltinFunction{
 pub struct List(pub Vec<EvalValueRef>);
 
 #[derive(Debug)]
+pub struct TailCall{
+    pub function: EvalValueRef,
+    pub args: Vec<EvalValueRef>,
+}
+
+#[derive(Debug)]
 pub enum EvalValue{
     IntValue(i32),
     StringValue(String),
@@ -99,6 +106,9 @@ pub enum EvalValue{
     //ExpressionRef(&'_ SExpression),
     CallableValue(Callable),
     List(List),
+
+    //TODO: does this even fit here? I don't wanna complicate the code too much though
+    TailCallValue(TailCall)
 }
 
 pub type EvalValueRef = Rc<EvalValue>;
@@ -118,6 +128,7 @@ impl Display for EvalValue {
             EvalValue::True => f.write_str("true"),
             EvalValue::CallableValue(c) => c.fmt(f),
             EvalValue::List(list) => Display::fmt(list,f),
+            EvalValue::TailCallValue(_) => todo!()
         }
     }
 }
@@ -143,7 +154,7 @@ pub enum EvalError{
 }
 
 
-pub type InternalCallback = fn(&'_ ScopeRef, BuiltInFunctionArgs) -> EvalResult;
+pub type InternalCallback = fn(&'_ ScopeRef, EvalContext, BuiltInFunctionArgs) -> EvalResult;
 impl fmt::Debug for Callable{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -153,4 +164,31 @@ impl fmt::Debug for Callable{
         }
     }
 }
-pub type EvalResult = Result<EvalValueRef,EvalError>;
+pub type EvalResult = Result<(EvalValueRef, EvalContext),EvalError>;
+
+
+//used only for tail recursion ... for now
+pub struct EvalContext{
+    pub possible_tail: bool
+}
+/*
+impl Default for EvalContext{
+    fn default() -> Self {
+        EvalContext{possible_tail: false}
+    }
+}
+
+ */
+
+impl EvalContext{
+    //should be removed, once fully integrated
+    pub fn tmp() -> EvalContext {
+        dbg!("TODO: stupid context");
+        EvalContext{possible_tail: false}
+        //Default::default()
+    }
+
+    pub fn none() -> EvalContext{
+        EvalContext{possible_tail: false}
+    }
+}

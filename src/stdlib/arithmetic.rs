@@ -1,5 +1,5 @@
 use crate::ast::SExpression;
-use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, EvalError, EvalResult, EvalValue, EvalValueRef};
+use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
 use crate::stdlib::util::{func};
@@ -24,14 +24,14 @@ fn integer_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(
     function_with_reduction(
         scope, args, value_mapping, reduction
     )
-        .map(|i| EvalValue::IntValue(i).to_ref())
+        .map(|i| (EvalValue::IntValue(i).to_ref(), EvalContext::none()))
 }
 
-fn add_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+fn add_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     integer_reduction(scope, args,|a,b| a+b)
 }
 
-fn minus_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+fn minus_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     integer_reduction(scope, args,|a,b| a-b)
 }
 

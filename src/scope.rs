@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use std::process::id;
 use std::rc::{Rc, Weak};
 use crate::ast::SExpression;
-use crate::evalvalue::{EvalError, EvalValue, EvalValueRef};
+use crate::evalvalue::{Callable, EvalError, EvalValue, EvalValueRef};
 
 const MAX_STACK_DEPTH: usize = 420;
 
 pub type ScopeRef = Rc<Scope>;
 pub struct Scope {
+    pub origin: Option<EvalValueRef>, //TODO: it should really only expect function value
     depth: usize,
     pub parent: Option<ScopeRef>,
     entries: RefCell<HashMap<String, EvalValueRef>>,
@@ -17,23 +18,23 @@ pub struct Scope {
 
 impl Scope {
     pub fn new() -> Rc<Self> {
-        Rc::new(Scope{depth:0,parent: None, entries: Default::default(), vararg: Default::default()})
+        Rc::new(Scope{origin: None,depth:0,parent: None, entries: Default::default(), vararg: Default::default()})
     }
 
-    pub fn enter(self: &Rc<Self>) -> Result<Rc<Self>, EvalError> {
-        self.enter_with_vararg(vec![])
+    pub fn enter(self: &Rc<Self>, origin: Option<EvalValueRef>) -> Result<Rc<Self>, EvalError> {
+        self.enter_with_vararg(vec![], origin)
     }
 
     pub fn vararg<'scope>(self: &'scope Rc<Self>) -> &'scope Vec<Rc<EvalValue>> {
         &self.vararg
     }
 
-    pub fn enter_with_vararg(self: &Rc<Self>, vararg: Vec<Rc<EvalValue>>) -> Result<Rc<Self>,EvalError> {
+    pub fn enter_with_vararg(self: &Rc<Self>, vararg: Vec<Rc<EvalValue>>, origin: Option<EvalValueRef>) -> Result<Rc<Self>,EvalError> {
         if (self.depth >= MAX_STACK_DEPTH) {
             Err(EvalError::StackOverflow)
         } else{
             Ok(
-                Rc::new(Self{depth: self.depth+1, parent: Some(self.clone()), entries: Default::default(), vararg})
+                Rc::new(Self{origin, depth: self.depth+1, parent: Some(self.clone()), entries: Default::default(), vararg})
             )
         }
     }

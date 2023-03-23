@@ -1,11 +1,12 @@
 use std::cell::{Ref, RefCell};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter, Octal, Write};
+use std::iter::Peekable;
 use std::rc::Rc;
 use std::slice::Iter;
 use std::thread::scope;
 use crate::ast::SExpression;
-use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
+use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
@@ -27,21 +28,21 @@ pub fn eval(ast: &'_ SExpression, provided_scope: Option<ScopeRef>) -> (EvalResu
     };
     let res = match ast {
         //don't create a new scope!
-        SExpression::Block(entries) => eval_block(&env, entries, true),
-        e => eval_expression(&env, e)
+        SExpression::Block(entries) => eval_block(EvalContext::none(), &env, entries, true),
+        e => eval_expression(EvalContext::none(), &env, e)
     };
     (res, env)
 }
 
-pub(crate) fn eval_expression(scope: &ScopeRef, expression: &'_ SExpression) -> EvalResult {
+pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'_ SExpression) -> EvalResult {
     match expression {
         SExpression::Symbol(i) => scope.lookup(i).map_or(
             Err(EvalError::UnknownSymbol(i.clone())),
-            |v| Ok(v)
+            |v| Ok((v, EvalContext::none()))
         ),
-        SExpression::Number(i) => Ok(EvalValue::IntValue(*i).to_ref()),
-        SExpression::List(expressions) => eval_list(scope, expressions),
-        SExpression::Block(expressions) => eval_block(scope, expressions, false),
+        SExpression::Number(i) => Ok((EvalValue::IntValue(*i).to_ref(), EvalContext::none())),
+        SExpression::List(expressions) => eval_list(ctx, scope, expressions),
+        SExpression::Block(expressions) => eval_block(ctx, scope, expressions, false),
         _ => todo!(),
     }
 }
@@ -55,65 +56,107 @@ fn populate_scope_with_args(scope: &ScopeRef, values: Vec<EvalValueRef>, arg_nam
         );
 }
 
-pub(crate) fn eval_with_args(scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression) -> EvalResult {
-    let new_scope = scope.enter()?;
-    populate_scope_with_args(&new_scope, passed_in, arg_names);
-    eval_expression(&new_scope, expression)
+fn is_tail_call(ctx: &EvalContext, origin: &Option<EvalValueRef>, inside: &Option<EvalValueRef>) -> bool {
+    match (ctx, origin, inside) {
+        (c,_,_) if !c.possible_tail => false,
+        (c,Some(o),Some(i)) if c.possible_tail =>  Rc::ptr_eq(o,i),
+        (_, _, _) => false,
+    }
 }
 
 
-fn eval_all(scope: &ScopeRef, exps: & [SExpression]) -> Result<Vec<EvalValueRef>, EvalError> {
+enum TailState{
+    Tail,
+    Done(EvalResult)
+}
+pub fn handle_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
+    let tc = is_tail_call(&ctx, &scope.origin,&origin);
+    if tc{
+        println!("tail call detected");
+    }
+    eval_with_args(ctx, scope, passed_in, arg_names, expression, origin)
+}
+
+pub(crate) fn eval_with_args_flat(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
+    populate_scope_with_args(&scope, passed_in, arg_names);
+    eval_expression(
+        EvalContext{possible_tail: true}, //there we go, tail recursion
+        &scope,
+        expression
+    )
+}
+
+pub(crate) fn eval_with_args(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
+    let func_scope = scope.enter(origin.clone())?;
+    eval_with_args_flat(ctx, &func_scope, passed_in, arg_names, expression, origin)
+}
+
+
+fn eval_all(_ctx: EvalContext, scope: &ScopeRef, exps: & [SExpression]) -> Result<Vec<EvalValueRef>, EvalError> {
     exps.iter()
-        .map(|exp| eval_expression(scope, exp))
+        .map(|exp| eval_expression(EvalContext::none(), scope, exp).map(|t| t.0))
         .collect()
 }
 
-pub(crate) fn eval_call_with_values(scope: &ScopeRef, callable: &Callable, args: Vec<EvalValueRef> ) -> EvalResult {
+pub(crate) fn eval_call_with_values(ctx: EvalContext, scope: &ScopeRef, callable: &Callable, args: Vec<EvalValueRef>, origin: Option<EvalValueRef>) -> EvalResult {
     match callable {
         Callable::Internal(BuiltinFunction{callback,..}) => callback(
             scope,
+            ctx,
             BuiltInFunctionArgs::from(args.into_iter().map(|v| BuiltInFunctionArg::Val(v)).collect())
         ),
-        Callable::Function(func) => eval_with_args(scope, args, &func.arguments, &func.body),
-        Callable::Lambda(lam) => eval_with_args(scope, args, &lam.arguments, &lam.body),
+        Callable::Function(func) =>
+            handle_tail_call(ctx, scope, args, &func.arguments, &func.body, origin),
+        Callable::Lambda(lam) => eval_with_args(EvalContext::none(), scope, args, &lam.arguments, &lam.body, None),
     }
 }
 
 
 
-pub(crate) fn eval_callable(scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression]) -> EvalResult {
+pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression], origin: Option<EvalValueRef>) -> EvalResult {
     match callable {
         Callable::Internal(bi) => {
             let exp_args: Vec<BuiltInFunctionArg> = args.iter().map(|exp| BuiltInFunctionArg::Exp(exp.clone())).collect();
-            (bi.callback)(scope, BuiltInFunctionArgs::from(exp_args))
+            (bi.callback)(scope, ctx, BuiltInFunctionArgs::from(exp_args))
         },
-        Callable::Function(Function{arguments, body,..}) => eval_with_args(scope, eval_all(scope, args)?, arguments, body),
-        Callable::Lambda(Lambda{arguments, body, ..}) => eval_with_args(scope, eval_all(scope, args)?, arguments, body),
+        Callable::Function(Function{arguments, body,..}) =>
+            eval_call_with_values(ctx, scope, callable, eval_all(EvalContext::none(), scope, args)?, origin),
+
+        Callable::Lambda(Lambda{arguments, body, ..}) =>
+            eval_call_with_values(ctx, scope, callable, eval_all(EvalContext::none(), scope, args)?, origin),
     }
 }
 
-pub(crate) fn eval_list(scope: &ScopeRef, expressions: &'_ Vec<SExpression>) -> EvalResult {
+pub(crate) fn eval_list(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<SExpression>) -> EvalResult {
     if expressions.is_empty(){
-        return Ok(EvalValue::Unit.to_ref()); //not sure how well this notation is, but whatever
+        return Ok((EvalValue::Unit.to_ref(), EvalContext::none())); //not sure how well this notation is, but whatever
     }
-    let head_value = eval_expression(scope, expressions.first().unwrap())?;
+    let (head_value, _) = eval_expression(EvalContext::none(), scope, expressions.first().unwrap())?;
     let tail = &expressions[1..];
     let callable = match head_value.as_ref() {
         EvalValue::CallableValue(c) => {Ok(c)},
         _ => Err(EvalError::CallingNonCallable)
     }?;
-    eval_callable(scope, callable, tail)
+    eval_callable(ctx, scope, callable, tail, Some(head_value.clone()))
 }
 
-fn eval_block_iter(scope: &ScopeRef, iterator: &mut Iter<'_, SExpression>, last: EvalValueRef) -> EvalResult {
+fn eval_block_iter(ctx: EvalContext, scope: &ScopeRef, iterator: &mut Peekable<Iter<'_, SExpression>>, last: (EvalValueRef, EvalContext)) -> EvalResult {
     match iterator.next() {
         None => Ok(last),
         Some(exp) =>
-            eval_expression(scope, exp).and_then(|v| eval_block_iter(scope, iterator, v))
+            eval_expression(
+                //last element could be a tail
+                EvalContext{possible_tail: iterator.peek().is_none() && ctx.possible_tail},
+                scope,
+                exp
+            ).and_then(
+                |v|
+                    eval_block_iter(EvalContext::none(), scope, iterator, v)
+            )
     }
 }
 
-pub(crate) fn eval_block(scope: &ScopeRef, expressions: &'_ Vec<SExpression>, flat: bool) -> EvalResult {
-    let block_scope = scope.enter()?;
-    eval_block_iter(if flat {scope} else {&block_scope}, &mut expressions.iter(), EvalValue::Unit.to_ref())
+pub(crate) fn eval_block(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<SExpression>, flat: bool) -> EvalResult {
+    let block_scope = scope.enter(None)?;
+    eval_block_iter(ctx, if flat {scope} else {&block_scope}, &mut expressions.iter().peekable(), (EvalValue::Unit.to_ref(), EvalContext::none()))
 }

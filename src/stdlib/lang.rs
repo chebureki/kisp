@@ -1,5 +1,5 @@
 use crate::ast::SExpression;
-use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
+use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
@@ -7,7 +7,7 @@ use crate::stdlib::util::{func};
 
 
 //variable assignment, non mutable
-fn let_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+fn let_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let identifier = match args.try_pos(0)?.try_expression()? {
         SExpression::Symbol(i) => Ok(i),
         _ => Err(EvalError::InvalidType),
@@ -16,9 +16,9 @@ fn let_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
         return Err(EvalError::Reassignment);
     }
 
-    let evaluated = args.try_pos(1)?.evaluated(scope)?;
+    let (evaluated, _) = args.try_pos(1)?.evaluated(scope)?;
     scope.insert(identifier.clone(), evaluated.clone());
-    Ok(evaluated)
+    Ok((evaluated, EvalContext::none()))
 }
 
 fn get_argument_names(possible_args: &BuiltInFunctionArg) -> Result<Vec<String>, EvalError> {
@@ -37,7 +37,7 @@ fn get_argument_names(possible_args: &BuiltInFunctionArg) -> Result<Vec<String>,
 }
 
 
-fn function_declaration_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+fn function_declaration_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let name: String = match args.try_pos(0)?.try_expression()? {
         SExpression::Symbol(i) => Ok(i.clone()),
         _ => Err(EvalError::InvalidType),
@@ -53,10 +53,10 @@ fn function_declaration_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) ->
     );
     let function_value = EvalValue::CallableValue(Callable::Function(function)).to_ref();
     scope.insert(name, function_value.clone());
-    Ok(function_value)
+    Ok((function_value, EvalContext::none()))
 }
 
-fn lambda_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+fn lambda_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let arguments: Vec<String> =  get_argument_names(args.try_pos(0)?)?;
     let body=  args.try_pos(1)?.try_expression()?.clone();
     let lambda = Lambda{
@@ -65,20 +65,26 @@ fn lambda_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
         body,
     };
     let lambda_value = EvalValue::CallableValue(Callable::Lambda(lambda)).to_ref();
-    Ok(lambda_value)
+    Ok((lambda_value, EvalContext::none()))
 }
 
-fn if_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
-    let condition = args.try_pos(0)?.evaluated(scope)?;
+fn if_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    let (condition, _) = args.try_pos(0)?.evaluated(scope)?;
     let else_expression = args.try_pos(2)
         .ok()
         .map(|v| v.try_expression())
         ;
     let then_expression = args.try_pos(1)?.try_expression()?;
     match condition.as_ref() {
-        EvalValue::Unit if else_expression.is_some() => eval_expression(scope, else_expression.unwrap()?),
-        EvalValue::Unit if else_expression.is_none() => Ok(EvalValue::Unit.to_ref()),
-        _ => eval_expression(scope, then_expression)
+        EvalValue::Unit if else_expression.is_some() =>
+            eval_expression(
+                ctx,// could be a tail call
+                scope,
+                else_expression.unwrap()?
+            ),
+        EvalValue::Unit if else_expression.is_none() => Ok((EvalValue::Unit.to_ref(), EvalContext::none())),
+        // also perhaps a tail
+        _ => eval_expression(ctx, scope, then_expression)
     }
 }
 

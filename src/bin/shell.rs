@@ -18,7 +18,7 @@ fn do_line(env: Option<ScopeRef>, line: String) -> (Result<EvalValueRef, String>
     };
     let (result, modded_env) = interpreter::eval(&ast, env);
     (
-        result.map_err(|err| format!("Eval: {:?}", err)),
+        result.map_err(|err| format!("Eval: {:?}", err)).map(|v|v.0),
         Some(modded_env)
     )
 
