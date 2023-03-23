@@ -1,23 +1,24 @@
 use crate::ast::SExpression;
-use crate::evalvalue::{BuiltinFunction, Callable, EvalError, EvalResult, EvalValue, EvalValueRef, List};
+use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArgs, Callable, EvalError, EvalResult, EvalValue, EvalValueRef, List};
 use crate::interpreter::eval_call_with_values;
 use crate::scope::ScopeRef;
-use crate::stdlib::util::{func, evaluated_args, eval_arg, try_pos_arg};
+use crate::stdlib::util::{func};
 
-fn list_callback(scope: &ScopeRef, raw_args: Vec<EvalValueRef>) -> EvalResult {
-    let vals: Vec<EvalValueRef> = evaluated_args(scope, raw_args)?;
+
+fn list_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+    let vals: Vec<EvalValueRef> = args.eval_all(scope)?;
     let list = List(vals);
     Ok(EvalValue::List(list).to_ref())
 }
 
-fn map_callback(scope: &ScopeRef, raw_args: Vec<EvalValueRef>) -> EvalResult {
-    let evaluated_left = eval_arg(scope, try_pos_arg(&raw_args, 0)?)?;
+fn map_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+    let evaluated_left = args.try_pos(0)?.evaluated(scope)?;
     let callable = match evaluated_left.as_ref(){
         EvalValue::CallableValue(c) => Ok(c),
         _ => Err(EvalError::InvalidType),
     }?;
 
-    let evaluated_right = eval_arg(scope, try_pos_arg(&raw_args, 1)?)?;
+    let evaluated_right = args.try_pos(1)?.evaluated(scope)?;
     let list = match evaluated_right.as_ref(){
         EvalValue::List(l) => Ok(l),
         _ => Err(EvalError::InvalidType),
@@ -42,14 +43,15 @@ fn list_nth(list: &List, n: usize) -> EvalValueRef {
     }
 }
 
-fn nth_callback(scope: &ScopeRef, raw_args: Vec<EvalValueRef>) -> EvalResult {
-    let list_value = eval_arg(scope, try_pos_arg(&raw_args, 1)?)?;
+
+fn nth_callback(scope: &ScopeRef, args: BuiltInFunctionArgs) -> EvalResult {
+    let list_value = args.try_pos(1)?.evaluated(scope)?;
     let list = match list_value.as_ref(){
         EvalValue::List(l) => Ok(l),
         _ => Err(EvalError::InvalidType),
     }?;
 
-    let pos = match eval_arg(scope, try_pos_arg(&raw_args, 0)?)?.as_ref(){
+    let pos = match args.try_pos(0)?.evaluated(scope)?.as_ref(){
         EvalValue::IntValue(i) => Ok(*i),
         _ => Err(EvalError::InvalidType),
     }?;
@@ -59,10 +61,8 @@ fn nth_callback(scope: &ScopeRef, raw_args: Vec<EvalValueRef>) -> EvalResult {
 
 pub fn std_lists() -> Vec<BuiltinFunction> {
     vec![
-
         func("list", list_callback),
         func("nth", nth_callback),
         func("map", map_callback),
-
     ]
 }

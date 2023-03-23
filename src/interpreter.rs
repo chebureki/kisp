@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use std::thread::scope;
 use crate::ast::SExpression;
-use crate::evalvalue::{BuiltinFunction, Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
+use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
@@ -70,7 +70,10 @@ fn eval_all(scope: &ScopeRef, exps: & [SExpression]) -> Result<Vec<EvalValueRef>
 
 pub(crate) fn eval_call_with_values(scope: &ScopeRef, callable: &Callable, args: Vec<EvalValueRef> ) -> EvalResult {
     match callable {
-        Callable::Internal(BuiltinFunction{callback,..}) => callback(scope, args),
+        Callable::Internal(BuiltinFunction{callback,..}) => callback(
+            scope,
+            BuiltInFunctionArgs::from(args.into_iter().map(|v| BuiltInFunctionArg::Val(v)).collect())
+        ),
         Callable::Function(func) => eval_with_args(scope, args, &func.arguments, &func.body),
         Callable::Lambda(lam) => eval_with_args(scope, args, &lam.arguments, &lam.body),
     }
@@ -81,10 +84,8 @@ pub(crate) fn eval_call_with_values(scope: &ScopeRef, callable: &Callable, args:
 pub(crate) fn eval_callable(scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression]) -> EvalResult {
     match callable {
         Callable::Internal(bi) => {
-            //don't evaluate them
-            let ast_args: Vec<EvalValueRef> = args.iter().map(|exp| EvalValue::ExpressionValue(exp.clone()).to_ref()).collect();
-            (bi.callback)(scope, ast_args)
-            //(bi.callback)(scope, args)
+            let exp_args: Vec<BuiltInFunctionArg> = args.iter().map(|exp| BuiltInFunctionArg::Exp(exp.clone())).collect();
+            (bi.callback)(scope, BuiltInFunctionArgs::from(exp_args))
         },
         Callable::Function(Function{arguments, body,..}) => eval_with_args(scope, eval_all(scope, args)?, arguments, body),
         Callable::Lambda(Lambda{arguments, body, ..}) => eval_with_args(scope, eval_all(scope, args)?, arguments, body),

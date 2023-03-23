@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter, Pointer, Write};
 use std::rc::Rc;
 use crate::ast::SExpression;
+use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
 
 pub struct Function{
@@ -29,6 +30,57 @@ pub struct Lambda {
     pub body: SExpression,
 }
 
+pub enum BuiltInFunctionArg{
+    Val(EvalValueRef),
+    Exp(SExpression),
+}
+
+pub struct BuiltInFunctionArgs{
+    pub values: Vec<BuiltInFunctionArg>,
+}
+
+impl BuiltInFunctionArg{
+    pub fn evaluated(&self, scope: &ScopeRef) -> EvalResult {
+        match self {
+            BuiltInFunctionArg::Val(v) => Ok(v.clone()),
+            BuiltInFunctionArg::Exp(e) => eval_expression(scope, e),
+        }
+    }
+
+
+
+    pub fn try_expression<'c>(&'c self) -> Result<&'c SExpression, EvalError> {
+        match self {
+            BuiltInFunctionArg::Val(_) => Err(EvalError::InvalidType),
+            BuiltInFunctionArg::Exp(e) => Ok(e)
+        }
+    }
+}
+
+impl BuiltInFunctionArgs{
+    pub fn from(values: Vec<BuiltInFunctionArg>) -> BuiltInFunctionArgs{
+        BuiltInFunctionArgs{values}
+    }
+
+    pub fn eval_all(self, scope: &ScopeRef) -> Result<Vec<EvalValueRef>, EvalError> {
+        self.values
+            .into_iter()
+            .map(|a|
+                match a {
+                    BuiltInFunctionArg::Val(a) => Ok(a),
+                    BuiltInFunctionArg::Exp(e) => eval_expression(scope, &e),
+                }
+            ).collect()
+    }
+
+    pub fn try_pos<'c>(&'c self, pos: usize) -> Result<&'c BuiltInFunctionArg, EvalError> {
+        match self.values.get(pos) {
+            Some(v) => Ok(v),
+            None => Err(EvalError::MissingArgument),
+        }
+    }
+}
+
 pub struct BuiltinFunction{
     pub callback: InternalCallback,
     pub name: &'static str
@@ -47,9 +99,6 @@ pub enum EvalValue{
     //ExpressionRef(&'_ SExpression),
     CallableValue(Callable),
     List(List),
-
-    //more for internal use, but I could see usage for macros
-    ExpressionValue(SExpression)
 }
 
 pub type EvalValueRef = Rc<EvalValue>;
@@ -69,7 +118,6 @@ impl Display for EvalValue {
             EvalValue::True => f.write_str("true"),
             EvalValue::CallableValue(c) => c.fmt(f),
             EvalValue::List(list) => Display::fmt(list,f),
-            EvalValue::ExpressionValue(_) => f.write_str("<expression>"),
         }
     }
 }
@@ -95,7 +143,7 @@ pub enum EvalError{
 }
 
 
-pub type InternalCallback = fn(&'_ ScopeRef, Vec<EvalValueRef>) -> EvalResult;
+pub type InternalCallback = fn(&'_ ScopeRef, BuiltInFunctionArgs) -> EvalResult;
 impl fmt::Debug for Callable{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
