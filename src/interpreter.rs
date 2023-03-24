@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use std::thread::scope;
 use crate::ast::SExpression;
-use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
+use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda, TailCall};
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
@@ -65,25 +65,28 @@ fn is_tail_call(ctx: &EvalContext, origin: &Option<EvalValueRef>, inside: &Optio
 }
 
 
-enum TailState{
-    Tail,
-    Done(EvalResult)
-}
-pub fn handle_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
-    let tc = is_tail_call(&ctx, &scope.origin,&origin);
-    if tc{
-        println!("tail call detected");
+pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
+    let tc_detected = is_tail_call(&ctx, &scope.origin,&origin);
+    if tc_detected{
+        let tc: TailCall = TailCall{ function: origin.unwrap().clone(), args: passed_in };
+        Ok((EvalValue::TailCallValue(tc).to_ref(),ctx))
+    }else {
+        eval_with_args(ctx, scope, passed_in, arg_names, expression, origin)
     }
-    eval_with_args(ctx, scope, passed_in, arg_names, expression, origin)
 }
 
 pub(crate) fn eval_with_args_flat(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
     populate_scope_with_args(&scope, passed_in, arg_names);
-    eval_expression(
+    let (mut res, mut res_ctx) = eval_expression(
         EvalContext{possible_tail: true}, //there we go, tail recursion
         &scope,
         expression
-    )
+    )?;
+    while let EvalValue::TailCallValue(tc) = res.as_ref() {
+        populate_scope_with_args(&scope, tc.args.clone(), arg_names);
+        (res, res_ctx) = eval_expression(EvalContext{possible_tail: true}, scope, expression)?;
+    }
+    Ok((res, res_ctx))
 }
 
 pub(crate) fn eval_with_args(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
@@ -106,11 +109,10 @@ pub(crate) fn eval_call_with_values(ctx: EvalContext, scope: &ScopeRef, callable
             BuiltInFunctionArgs::from(args.into_iter().map(|v| BuiltInFunctionArg::Val(v)).collect())
         ),
         Callable::Function(func) =>
-            handle_tail_call(ctx, scope, args, &func.arguments, &func.body, origin),
+            wrap_tail_call(ctx, scope, args, &func.arguments, &func.body, origin),
         Callable::Lambda(lam) => eval_with_args(EvalContext::none(), scope, args, &lam.arguments, &lam.body, None),
     }
 }
-
 
 
 pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression], origin: Option<EvalValueRef>) -> EvalResult {

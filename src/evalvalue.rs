@@ -128,7 +128,7 @@ impl Display for EvalValue {
             EvalValue::True => f.write_str("true"),
             EvalValue::CallableValue(c) => c.fmt(f),
             EvalValue::List(list) => Display::fmt(list,f),
-            EvalValue::TailCallValue(_) => todo!()
+            EvalValue::TailCallValue(_) => f.write_str("<tail-call>"),
         }
     }
 }
