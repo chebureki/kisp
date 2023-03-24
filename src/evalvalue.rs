@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::task::Context;
 use crate::ast::SExpression;
 use crate::interpreter::eval_expression;
+use crate::numeric::Numeric;
 use crate::scope::ScopeRef;
 
 pub struct Function{
@@ -98,7 +99,8 @@ pub struct TailCall{
 
 #[derive(Debug)]
 pub enum EvalValue{
-    IntValue(i32),
+    //IntValue(i32), //TODO: remove
+    Numeric(Numeric),
     StringValue(String),
     Unit,
     True, // anything non nil
@@ -122,13 +124,14 @@ impl EvalValue{
 impl Display for EvalValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            EvalValue::IntValue(i) => f.write_str(i.to_string().as_str()),
+            //EvalValue::IntValue(i) => f.write_str(i.to_string().as_str()),
             EvalValue::StringValue(s) => f.write_str(s.as_str()),
             EvalValue::Unit => f.write_str("unit"),
             EvalValue::True => f.write_str("true"),
             EvalValue::CallableValue(c) => c.fmt(f),
             EvalValue::List(list) => Display::fmt(list,f),
             EvalValue::TailCallValue(_) => f.write_str("<tail-call>"),
+            EvalValue::Numeric(n) => Display::fmt(n, f),
         }
     }
 }

@@ -2,6 +2,7 @@ use crate::ast::SExpression;
 use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
+use crate::numeric::Numeric;
 use crate::stdlib::util::{func};
 
 fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value_mapping: fn(&EvalValue) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {
@@ -15,30 +16,41 @@ fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value
 }
 
 
-fn integer_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(i32, i32) -> i32) -> EvalResult{
+fn numeric_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(Numeric, Numeric) -> Numeric) -> EvalResult{
     let value_mapping = |value: &EvalValue| match value {
-        EvalValue::IntValue(i) => Ok(*i),
+        EvalValue::Numeric(i) => Ok(i.clone()),
         _ => Err(EvalError::InvalidType)
     };
 
     function_with_reduction(
         scope, args, value_mapping, reduction
     )
-        .map(|i| (EvalValue::IntValue(i).to_ref(), EvalContext::none()))
+        .map(|i| (EvalValue::Numeric(i).to_ref(), EvalContext::none()))
 }
 
-fn add_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    integer_reduction(scope, args,|a,b| a+b)
+fn addition_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    numeric_reduction(scope, args, |a, b| a+b)
 }
 
-fn minus_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    integer_reduction(scope, args,|a,b| a-b)
+fn subtraction_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    numeric_reduction(scope, args, |a, b| a-b)
 }
+
+fn multiplication_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    numeric_reduction(scope, args, |a, b| a*b)
+}
+
+fn division_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    numeric_reduction(scope, args, |a, b| a/b)
+}
+
 
 
 pub fn std_arithmetic() -> Vec<BuiltinFunction> {
     vec![
-        func("+", add_callback),
-        func("-", minus_callback)
+        func("+", addition_callback),
+        func("-", subtraction_callback),
+        func("*", multiplication_callback),
+        func("/", division_callback),
     ]
 }

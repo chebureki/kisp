@@ -1,6 +1,7 @@
 use crate::ast::SExpression;
 use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, List};
 use crate::interpreter::eval_call_with_values;
+use crate::numeric::Numeric;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::{func};
 
@@ -52,7 +53,7 @@ fn nth_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
     }?;
 
     let pos = match args.try_pos(0)?.evaluated(scope)?.0.as_ref(){
-        EvalValue::IntValue(i) => Ok(*i),
+        EvalValue::Numeric(Numeric::Integer(i)) => Ok(*i),
         _ => Err(EvalError::InvalidType),
     }?;
 

@@ -7,12 +7,12 @@ use std::slice::Iter;
 use std::thread::scope;
 use crate::ast::SExpression;
 use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda, TailCall};
+use crate::numeric::Numeric;
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 
 fn env_scope() -> ScopeRef {
     let scope = Scope::new();
-    scope.insert("answer_to_all".to_string(),EvalValue::IntValue(42).to_ref());
     scope.insert("true".to_string(), EvalValue::True.to_ref());
     for bi in std_lib_functions().into_iter() {
         scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi)).to_ref())
@@ -40,7 +40,7 @@ pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'
             Err(EvalError::UnknownSymbol(i.clone())),
             |v| Ok((v, EvalContext::none()))
         ),
-        SExpression::Number(i) => Ok((EvalValue::IntValue(*i).to_ref(), EvalContext::none())),
+        SExpression::Number(i) => Ok((EvalValue::Numeric(Numeric::Integer(*i)).to_ref(), EvalContext::none())),
         SExpression::List(expressions) => eval_list(ctx, scope, expressions),
         SExpression::Block(expressions) => eval_block(ctx, scope, expressions, false),
         _ => todo!(),
