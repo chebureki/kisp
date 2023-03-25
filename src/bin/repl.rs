@@ -26,10 +26,17 @@ fn main() -> io::Result<()>{
         }
     }
 
+    let mut line_acc: String = String::new();
     while let ReadResult::Input(line) = interface.read_line()? {
-        if !line.trim().is_empty() {
-            interface.add_history_unique(line.clone());
-            let (result, new_env) = do_line(env, line);
+        line_acc.push_str(line.as_str());
+        if line.ends_with('\\') {
+            continue;
+        }
+        line_acc = line_acc.replace("\\","\n");
+        println!("line: {}", line_acc);
+        if !line_acc.trim().is_empty() {
+            interface.add_history_unique(line_acc.clone());
+            let (result, new_env) = do_line(env, line_acc);
             match result{
                 Ok(v) => {
                     println!("{}", v);
@@ -38,6 +45,7 @@ fn main() -> io::Result<()>{
                     println!("Err: {}", e);
                 }
             }
+            line_acc = String::new();
             env = new_env;
         }
 
