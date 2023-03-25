@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter, Pointer, Write};
+use std::slice::Iter;
 use std::rc::Rc;
 use std::task::Context;
 use crate::ast::SExpression;
@@ -89,7 +90,34 @@ pub struct BuiltinFunction{
 }
 
 #[derive(Debug)]
-pub struct List(pub Vec<EvalValueRef>);
+pub struct List(Vec<EvalValueRef>);
+impl List {
+    pub fn new(v: Vec<EvalValueRef>) -> List {
+        List(v)
+    }
+
+    pub fn sub_list(&self, start: usize, end: usize) -> List {
+        let res: Vec<EvalValueRef> = self.0.iter()
+            .skip(start)
+            .take((end-start))
+            .map(|r| r.clone())
+            .collect();
+        List(res)
+    }
+
+    pub fn iter_values(&self) -> impl Iterator<Item = EvalValueRef> + '_{
+        self.0.iter().map(|res| res.clone())
+    }
+
+    pub fn get(&self, pos: usize) -> Option<EvalValueRef> {
+        self.0.get(pos).map(|r| r.clone())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
 
 #[derive(Debug)]
 pub struct TailCall{
