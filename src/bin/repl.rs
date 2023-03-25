@@ -33,7 +33,6 @@ fn main() -> io::Result<()>{
             continue;
         }
         line_acc = line_acc.replace("\\","\n");
-        println!("line: {}", line_acc);
         if !line_acc.trim().is_empty() {
             interface.add_history_unique(line_acc.clone());
             let (result, new_env) = do_line(env, line_acc);
