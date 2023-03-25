@@ -2,16 +2,17 @@
 name = "kisp"
 version = "0.1.0"
 edition = "2021"
-default-run = "testing"
+default-run = "repl"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
 [[bin]]
-name = "shell"
-path = "src/bin/shell.rs"
+name = "repl"
+path = "src/bin/repl.rs"
 
 [[bin]]
 name = "testing"
 path = "src/bin/testing.rs"
 
 [dependencies]
+linefeed = "0.6"
