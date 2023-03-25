@@ -15,7 +15,9 @@ impl ops::Add for Numeric{
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             //identity
-            (Numeric::Integer(a), Numeric::Integer(b)) => Numeric::Integer(a+b),
+            (Numeric::Integer(a), Numeric::Integer(b)) => a
+                .checked_add(b)
+                .map_or_else(|| Numeric::Floating(a as f64 + b as f64), |v| Numeric::Integer(v), ),
             (Numeric::Floating(a), Numeric::Floating(b)) => Numeric::Floating(a+b),
 
             //implicit casts
@@ -33,7 +35,9 @@ impl ops::Sub for Numeric{
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             //identity
-            (Numeric::Integer(a), Numeric::Integer(b)) => Numeric::Integer(a-b),
+            (Numeric::Integer(a), Numeric::Integer(b)) => a
+                .checked_sub(b)
+                .map_or_else(|| Numeric::Floating(a as f64 - b as f64), |v| Numeric::Integer(v)),
             (Numeric::Floating(a), Numeric::Floating(b)) => Numeric::Floating(a-b),
 
             //implicit casts
@@ -50,7 +54,9 @@ impl ops::Mul for Numeric{
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             //identity
-            (Numeric::Integer(a), Numeric::Integer(b)) => Numeric::Integer(a*b),
+            (Numeric::Integer(a), Numeric::Integer(b)) => a
+                .checked_mul(b)
+                .map_or_else(|| Numeric::Floating(a as f64 * b as f64), |res| Numeric::Integer(res)),
             (Numeric::Floating(a), Numeric::Floating(b)) => Numeric::Floating(a*b),
 
             //implicit casts
