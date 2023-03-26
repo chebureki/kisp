@@ -9,7 +9,7 @@ use kisp::evalvalue::{EvalValueRef};
 
 use kisp::scope::ScopeRef;
 
-const HISTORY_FILE: &str = "/Users/kirill/.ksp";
+const HISTORY_FILE: &str = ".kisp-history";
 fn main() -> io::Result<()>{
     let interface = Arc::new(Interface::new("REPL for Kirill's Lisp")?);
     println!("wazzup faggot");
