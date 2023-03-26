@@ -15,12 +15,7 @@ pub struct List(Option<Box<Con>>); //Box is unnecessary, makes code simpler, but
 
 impl List{
     pub fn from(v: Vec<EvalValueRef>) -> List {
-        let head = v.into_iter()
-            .rev() // start from end
-            .fold(None, |next,value|
-                Some(Box::new(Con{value, next}))
-            );
-        List(head)
+        v.into_iter().rev().collect()
     }
 
     pub fn get(&self, n: usize) -> Option<EvalValueRef> {
@@ -48,6 +43,18 @@ impl List{
 
     pub fn prepended(&self, value: EvalValueRef) -> List{
         List(Some(Box::new(Con{ value, next: self.0.clone()})))
+    }
+}
+
+impl FromIterator<EvalValueRef> for List{
+    //TODO: due to my atrocious programming skills, it will be collected in reverse
+    fn from_iter<T: IntoIterator<Item=EvalValueRef>>(iter: T) -> Self {
+        let iterator = iter.into_iter();
+        let head_opt = iterator
+            .fold(None, |next,value|
+                Some(Box::new(Con{value, next}))
+            );
+        List(head_opt)
     }
 }
 
