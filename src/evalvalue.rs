@@ -7,6 +7,7 @@ use crate::ast::SExpression;
 use crate::interpreter::eval_expression;
 use crate::numeric::Numeric;
 use crate::scope::ScopeRef;
+use crate::list::List;
 
 pub struct Function{
     pub in_scope: ScopeRef,
@@ -89,35 +90,6 @@ pub struct BuiltinFunction{
     pub name: &'static str
 }
 
-#[derive(Debug)]
-pub struct List(Vec<EvalValueRef>);
-impl List {
-    pub fn new(v: Vec<EvalValueRef>) -> List {
-        List(v)
-    }
-
-    pub fn sub_list(&self, start: usize, end: usize) -> List {
-        let res: Vec<EvalValueRef> = self.0.iter()
-            .skip(start)
-            .take((end-start))
-            .map(|r| r.clone())
-            .collect();
-        List(res)
-    }
-
-    pub fn iter_values(&self) -> impl Iterator<Item = EvalValueRef> + '_{
-        self.0.iter().map(|res| res.clone())
-    }
-
-    pub fn get(&self, pos: usize) -> Option<EvalValueRef> {
-        self.0.get(pos).map(|r| r.clone())
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
 
 #[derive(Debug)]
 pub struct TailCall{
@@ -164,13 +136,6 @@ impl Display for EvalValue {
     }
 }
 
-impl Display for List {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        //TODO: this seems inefficient
-        let inner = self.0.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(" ");
-        f.write_fmt( format_args!("<list: {}>", inner))
-    }
-}
 
 #[derive(Debug)]
 pub enum EvalError{
