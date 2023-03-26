@@ -10,9 +10,5 @@ default-run = "repl"
 name = "repl"
 path = "src/bin/repl.rs"
 
-[[bin]]
-name = "testing"
-path = "src/bin/testing.rs"
-
 [dependencies]
 linefeed = "0.6"
