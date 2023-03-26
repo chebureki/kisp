@@ -2,10 +2,13 @@ use std::iter::Peekable;
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::{PosExpression,SExpression};
-use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda, TailCall};
-use crate::numeric::Numeric;
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
+use crate::value::numeric::Numeric;
+
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
+use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs};
+use crate::value::callable::{Callable, Function, Lambda, TailCall};
 
 fn env_scope() -> ScopeRef {
     let scope = Scope::new();

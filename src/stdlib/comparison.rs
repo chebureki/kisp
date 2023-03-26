@@ -1,12 +1,9 @@
-
-
-use crate::evalvalue::{BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue};
-
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue};
 use crate::scope::ScopeRef;
-use crate::evalvalue::BuiltinFunction;
 use crate::expect_type;
-use crate::numeric::Numeric;
+use crate::value::numeric::Numeric;
 use crate::stdlib::util::{func};
+use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
 
 // < > = >= <= !=
 

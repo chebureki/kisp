@@ -1,9 +1,10 @@
 use crate::ast::{PosExpression, SExpression};
-use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, Function, Lambda};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
-use crate::evalvalue::BuiltinFunction;
 use crate::stdlib::util::{func};
+use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs};
+use crate::value::callable::{Callable, Function, Lambda};
 
 
 //variable assignment, non mutable

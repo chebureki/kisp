@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::evalvalue::{EvalError, EvalValue, EvalValueRef};
+use crate::value::{EvalError, EvalValue, EvalValueRef};
 
 const MAX_STACK_DEPTH: usize = 420;
 

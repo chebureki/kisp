@@ -1,9 +1,9 @@
-use crate::evalvalue::{BuiltinFunction};
 use crate::stdlib::arithmetic::std_arithmetic;
 use crate::stdlib::comparison::std_comparison;
 use crate::stdlib::lang::std_lang;
 use crate::stdlib::lists::std_lists;
 use crate::stdlib::output::std_output;
+use crate::value::builtin::BuiltinFunction;
 
 mod arithmetic;
 mod util;

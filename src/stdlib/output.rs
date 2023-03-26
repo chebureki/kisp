@@ -1,7 +1,7 @@
-use crate::evalvalue::{BuiltInFunctionArgs, EvalContext, EvalResult, EvalValue};
+use crate::value::{EvalContext, EvalResult, EvalValue};
 use crate::scope::ScopeRef;
-use crate::evalvalue::BuiltinFunction;
 use crate::stdlib::util::{func};
+use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
 
 fn print_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let vals = args.eval_all(scope)?;

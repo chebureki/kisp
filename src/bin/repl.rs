@@ -5,7 +5,7 @@ use linefeed::{Interface, ReadResult};
 
 use kisp::lexer::Lexer;
 use kisp::{interpreter, parser};
-use kisp::evalvalue::{EvalValueRef};
+use kisp::value::{EvalValueRef};
 
 use kisp::scope::ScopeRef;
 

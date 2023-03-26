@@ -1,4 +1,6 @@
-use crate::evalvalue::{BuiltinFunction, InternalCallback};
+use crate::value::builtin::BuiltinFunction;
+use crate::value::builtin::InternalCallback;
+
 pub fn func(name: &'static str, callback: InternalCallback) -> BuiltinFunction{
     BuiltinFunction{ callback, name }
 }

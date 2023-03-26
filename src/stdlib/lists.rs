@@ -1,11 +1,12 @@
 
-use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
 use crate::expect_type;
 use crate::interpreter::eval_call_with_values;
-use crate::list::List;
-use crate::numeric::Numeric;
+use crate::value::list::List;
+use crate::value::numeric::Numeric;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::{func};
+use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
 
 
 fn list_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {

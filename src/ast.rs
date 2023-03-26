@@ -1,5 +1,5 @@
 use crate::lexer::Cursor;
-use crate::numeric::Numeric;
+use crate::value::numeric::Numeric;
 
 //https://iamwilhelm.github.io/bnf-examples/lisp
 /*

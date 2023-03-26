@@ -1,9 +1,9 @@
-use crate::evalvalue::{BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
 use crate::scope::ScopeRef;
-use crate::evalvalue::BuiltinFunction;
 use crate::expect_type;
-use crate::numeric::Numeric;
+use crate::value::numeric::Numeric;
 use crate::stdlib::util::{func};
+use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
 
 fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value_mapping: fn(&EvalValueRef) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {
     args.eval_all(scope)?

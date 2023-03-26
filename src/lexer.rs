@@ -1,5 +1,5 @@
 use std::iter::Peekable;
-use crate::numeric::Numeric;
+use crate::value::numeric::Numeric;
 
 mod langchars {
     pub const PARENTHESIS_OPEN: char = '(';
