@@ -1,4 +1,5 @@
 use std::iter::Peekable;
+use crate::numeric::Numeric;
 
 mod langchars {
     pub const PARENTHESIS_OPEN: char = '(';
@@ -57,7 +58,8 @@ pub enum Keyword{
 #[derive(Debug, PartialEq)]
 pub enum TokenValue{
     Identifier(String),
-    IntToken(i32),
+    NumericToken(Numeric),
+    //IntToken(i32),
     //StringLiteral(String),
     ParenthesisOpen,
     ParenthesisClose,
@@ -100,8 +102,14 @@ impl<'t> Lexer<'t>{
         !langchars::NON_IDENTIFIER_CHARS.contains(&c)
     }
 
-    fn possible_identifier_upgrade(v: &String) -> Option<TokenValue> {
-        v.parse::<i32>().map(|v| Some(TokenValue::IntToken(v))).unwrap_or(None)
+    fn possible_identifier_upgrade(input: &String) -> Option<TokenValue> {
+        //TODO: this is AWFUL, refactor when BigInt is added
+        input.parse::<i32>()
+            .map(|v| Some(TokenValue::NumericToken(Numeric::Integer(v)))).unwrap_or_else(
+                |_| input.parse::<f64>()
+                    .map(|v| Some(TokenValue::NumericToken(Numeric::Floating(v))))
+                    .unwrap_or(None)
+        )
     }
 
     fn read_identifier(&self, cursor: &Cursor) -> (TokenValue, Cursor) {

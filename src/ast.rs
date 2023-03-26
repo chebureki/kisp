@@ -1,4 +1,5 @@
 use crate::lexer::Cursor;
+use crate::numeric::Numeric;
 
 //https://iamwilhelm.github.io/bnf-examples/lisp
 /*
@@ -21,7 +22,7 @@ empty = " "
 #[derive(Debug, Clone)]
 pub enum SExpression{
     Symbol(String),
-    Number(i32),
+    Number(Numeric),
     //DotExpression(Box<SExpression>,Box<SExpression>),
     List(Vec<PosExpression>),
     Block(Vec<PosExpression>),

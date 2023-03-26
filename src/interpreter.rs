@@ -36,7 +36,7 @@ pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'
             Err(EvalError::UnknownSymbol(i.clone())),
             |v| Ok((v, EvalContext::none()))
         ),
-        SExpression::Number(i) => Ok((EvalValue::Numeric(Numeric::Integer(*i)).to_ref(), EvalContext::none())),
+        SExpression::Number(i) => Ok((EvalValue::Numeric(i.clone()).to_ref(), EvalContext::none())),
         SExpression::List(expressions) => eval_list(ctx, scope, expressions),
         SExpression::Block(expressions) => eval_block(ctx, scope, expressions, false),
     }

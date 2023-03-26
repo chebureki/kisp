@@ -44,11 +44,11 @@ fn parse_s_expression(stream: &mut TokenStream) -> ParserResult {
 
 fn parse_atomic(stream: &mut TokenStream) -> ParserResult{
     let stream = stream;
-    match stream.next_if(|token| matches!(token.value, TokenValue::IntToken(_)) ||matches!(token.value, TokenValue::Identifier(_))) {
+    match stream.next_if(|token| matches!(token.value, TokenValue::NumericToken(_)) ||matches!(token.value, TokenValue::Identifier(_))) {
         Some(Token {value: TokenValue::Identifier(ident), cursor}) => {
             Ok(Some(PosExpression{cursor, exp: SExpression::Symbol(ident)}))
         },
-        Some(Token{value: TokenValue::IntToken(i), cursor}) => {
+        Some(Token{value: TokenValue::NumericToken(i), cursor}) => {
             Ok(Some(PosExpression{cursor, exp: SExpression::Number(i)}))
         }
         _ => { Ok(None) }
