@@ -81,7 +81,7 @@ pub struct TokenIterator<'a> {
 
 
 impl<'t> Lexer<'t>{
-    pub fn from_file_path(path: &str) -> Lexer {
+    pub fn from_file_path(_path: &str) -> Lexer {
         todo!()
     }
 

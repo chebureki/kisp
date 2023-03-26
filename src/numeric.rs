@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::fmt::{Display, Formatter, Octal, Pointer};
+use std::fmt::{Display, Formatter};
 use std::ops;
 
 #[derive(Debug, Clone)]

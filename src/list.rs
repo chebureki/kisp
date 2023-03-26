@@ -1,8 +1,8 @@
 use std::fmt;
 use std::fmt::{Display, Formatter, Write};
-use std::ops::Deref;
-use std::slice::Iter;
-use crate::evalvalue::{EvalValue, EvalValueRef};
+
+
+use crate::evalvalue::{EvalValueRef};
 
 #[derive(Debug, Clone)]
 struct Con {

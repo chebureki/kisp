@@ -1,14 +1,14 @@
 use std::io;
 use std::io::BufRead;
-use std::ops::Deref;
-use std::rc::Rc;
+
+
 use std::sync::Arc;
 use linefeed::{Interface, ReadResult};
-use kisp::ast::SExpression;
+
 use kisp::lexer::Lexer;
 use kisp::{interpreter, parser};
-use kisp::evalvalue::{EvalValue, EvalValueRef};
-use kisp::parser::ParserError;
+use kisp::evalvalue::{EvalValueRef};
+
 use kisp::scope::ScopeRef;
 
 const HISTORY_FILE: &str = "/Users/kirill/.ksp";
@@ -54,7 +54,7 @@ fn main() -> io::Result<()>{
 }
 
 fn do_line(env: Option<ScopeRef>, line: String) -> (Result<EvalValueRef, String>, Option<ScopeRef>) {
-    let mut lexer = Lexer::from_text(line.as_str());
+    let lexer = Lexer::from_text(line.as_str());
     let mut iter = lexer.into_iter();
     let ast = match parser::parse(&mut iter) {
         Ok(ast) => ast,

@@ -1,5 +1,5 @@
 use crate::ast::{PosExpression, SExpression};
-use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
+use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, Function, Lambda};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
@@ -10,7 +10,7 @@ use crate::stdlib::util::{func};
 fn let_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let identifier = match args.try_pos(0)?.try_expression()?{
         PosExpression{exp: SExpression::Symbol(i), ..}=> Ok(i),
-        PosExpression{cursor, ..} => Err(EvalError::InvalidType(None)),
+        PosExpression{ ..} => Err(EvalError::InvalidType(None)),
     }?;
     //if let Some(_) = scope.lookup(identifier) {
     //    return Err(EvalError::Reassignment);

@@ -26,7 +26,7 @@ pub fn parse(stream: &mut TokenStream) -> Result<PosExpression, ParserError> {
     let stack = parse_iter(stream, Vec::new())?;
     match stream.peek().unwrap() {
         Token{value: TokenValue::EOF, ..} => Ok(PosExpression{exp: SExpression::Block(stack), cursor: Cursor::new()}),
-        Token{value, cursor} => Err(ParserError::NoMatchingParser(cursor.clone())),
+        Token{value: _, cursor} => Err(ParserError::NoMatchingParser(cursor.clone())),
     }
 }
 
@@ -43,7 +43,7 @@ fn parse_s_expression(stream: &mut TokenStream) -> ParserResult {
 }
 
 fn parse_atomic(stream: &mut TokenStream) -> ParserResult{
-    let mut stream = stream;
+    let stream = stream;
     match stream.next_if(|token| matches!(token.value, TokenValue::IntToken(_)) ||matches!(token.value, TokenValue::Identifier(_))) {
         Some(Token {value: TokenValue::Identifier(ident), cursor}) => {
             Ok(Some(PosExpression{cursor, exp: SExpression::Symbol(ident)}))

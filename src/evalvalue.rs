@@ -1,9 +1,9 @@
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter, Pointer, Write};
-use std::slice::Iter;
+
 use std::rc::Rc;
-use std::task::Context;
-use crate::ast::{PosExpression, SExpression};
+
+use crate::ast::{PosExpression};
 use crate::interpreter::eval_expression;
 use crate::lexer::Cursor;
 use crate::numeric::Numeric;
@@ -157,7 +157,7 @@ impl fmt::Debug for Callable{
         match self {
             Callable::Internal(i) => f.write_fmt(format_args!("<internal: {}>", i.name)),
             Callable::Function(func) => f.write_fmt(format_args!("<function: {}>", func.name)),
-            Callable::Lambda(lambda) => f.write_str("<lambda>"),
+            Callable::Lambda(_lambda) => f.write_str("<lambda>"),
         }
     }
 }

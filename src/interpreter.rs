@@ -71,7 +71,7 @@ pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalVal
     }
 }
 
-pub(crate) fn eval_with_args_flat(_ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<EvalValueRef>) -> EvalResult {
+pub(crate) fn eval_with_args_flat(_ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, _origin: Option<EvalValueRef>) -> EvalResult {
     populate_scope_with_args(&scope, passed_in, arg_names);
     let (mut res, mut res_ctx) = eval_expression(
         EvalContext{possible_tail: true}, //there we go, tail recursion
@@ -117,10 +117,10 @@ pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Calla
             let exp_args: Vec<BuiltInFunctionArg> = args.iter().map(|exp| BuiltInFunctionArg::Exp(exp.clone())).collect();
             (bi.callback)(scope, ctx, BuiltInFunctionArgs::from(exp_args))
         },
-        Callable::Function(Function{arguments, body,..}) =>
+        Callable::Function(Function{arguments: _, body: _,..}) =>
             eval_call_with_values(ctx, scope, callable, eval_all(EvalContext::none(), scope, args)?, origin),
 
-        Callable::Lambda(Lambda{arguments, body, ..}) =>
+        Callable::Lambda(Lambda{arguments: _, body: _, ..}) =>
             eval_call_with_values(ctx, scope, callable, eval_all(EvalContext::none(), scope, args)?, origin),
     }
 }

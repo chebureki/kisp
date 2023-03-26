@@ -1,5 +1,5 @@
-use crate::ast::SExpression;
-use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
+
+use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
 use crate::expect_type;
 use crate::interpreter::eval_call_with_values;
 use crate::list::List;
