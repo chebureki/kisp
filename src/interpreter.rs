@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::{PosExpression,SExpression};
 use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
-use crate::value::numeric::Numeric;
+
 
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;

@@ -3,11 +3,11 @@ use std::fmt::{Debug, Display, Formatter};
 
 use std::rc::Rc;
 
-use crate::ast::{PosExpression};
-use crate::interpreter::eval_expression;
+
+
 use crate::lexer::Cursor;
 use crate::value::numeric::Numeric;
-use crate::scope::ScopeRef;
+
 use crate::value::callable::{Callable, TailCall};
 use crate::value::list::List;
 
