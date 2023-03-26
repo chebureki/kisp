@@ -2,13 +2,14 @@ use crate::ast::SExpression;
 use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
+use crate::expect_type;
 use crate::numeric::Numeric;
 use crate::stdlib::util::{func};
 
-fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value_mapping: fn(&EvalValue) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {
+fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value_mapping: fn(&EvalValueRef) -> Result<T, EvalError>, reduction: fn(T, T) -> T) -> Result<T, EvalError> {
     args.eval_all(scope)?
         .iter()
-        .map(|r| value_mapping(r.as_ref()))
+        .map(value_mapping)
         //TODO: a seemingly unnecessary collect here, but it also does an early terminate on the sream
         .collect::<Result<Vec<T>, EvalError>>()?.into_iter()
         .reduce(reduction)
@@ -17,14 +18,9 @@ fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value
 
 
 fn numeric_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(Numeric, Numeric) -> Numeric) -> EvalResult{
-    let value_mapping = |value: &EvalValue| match value {
-        EvalValue::Numeric(i) => Ok(i.clone()),
-        _ => Err(EvalError::InvalidType(None))
-    };
-
-    function_with_reduction(
-        scope, args, value_mapping, reduction
-    )
+    let value_mapping =
+        |value: &EvalValueRef| expect_type!(value, EvalValue::Numeric(n) => n.clone(), None);
+    function_with_reduction(scope, args, value_mapping, reduction)
         .map(|i| (EvalValue::Numeric(i).to_ref(), EvalContext::none()))
 }
 
