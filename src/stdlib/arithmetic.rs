@@ -19,7 +19,7 @@ fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value
 fn numeric_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(Numeric, Numeric) -> Numeric) -> EvalResult{
     let value_mapping = |value: &EvalValue| match value {
         EvalValue::Numeric(i) => Ok(i.clone()),
-        _ => Err(EvalError::InvalidType)
+        _ => Err(EvalError::InvalidType(None))
     };
 
     function_with_reduction(

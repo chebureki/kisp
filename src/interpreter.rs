@@ -5,7 +5,7 @@ use std::iter::Peekable;
 use std::rc::Rc;
 use std::slice::Iter;
 use std::thread::scope;
-use crate::ast::SExpression;
+use crate::ast::{PosExpression,SExpression};
 use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda, TailCall};
 use crate::numeric::Numeric;
 use crate::scope::{Scope, ScopeRef};
@@ -20,22 +20,22 @@ fn env_scope() -> ScopeRef {
     scope
 }
 
-pub fn eval(ast: &'_ SExpression, provided_scope: Option<ScopeRef>) -> (EvalResult, ScopeRef) {
+pub fn eval(ast: &'_ PosExpression, provided_scope: Option<ScopeRef>) -> (EvalResult, ScopeRef) {
     let env = if let Some(provided) = provided_scope{
         provided
     }else{
         env_scope()
     };
-    let res = match ast {
+    let res = match &ast.exp {
         //don't create a new scope!
         SExpression::Block(entries) => eval_block(EvalContext::none(), &env, entries, true),
-        e => eval_expression(EvalContext::none(), &env, e)
+        _ => eval_expression(EvalContext::none(), &env, ast)
     };
     (res, env)
 }
 
-pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'_ SExpression) -> EvalResult {
-    match expression {
+pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'_ PosExpression) -> EvalResult {
+    match &expression.exp {
         SExpression::Symbol(i) => scope.lookup(i).map_or(
             Err(EvalError::UnknownSymbol(i.clone())),
             |v| Ok((v, EvalContext::none()))
@@ -65,7 +65,7 @@ fn is_tail_call(ctx: &EvalContext, origin: &Option<EvalValueRef>, inside: &Optio
 }
 
 
-pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
+pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<EvalValueRef>) -> EvalResult {
     let tc_detected = is_tail_call(&ctx, &scope.origin,&origin);
     if tc_detected{
         let tc: TailCall = TailCall{ function: origin.unwrap().clone(), args: passed_in };
@@ -75,7 +75,7 @@ pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalVal
     }
 }
 
-pub(crate) fn eval_with_args_flat(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
+pub(crate) fn eval_with_args_flat(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<EvalValueRef>) -> EvalResult {
     populate_scope_with_args(&scope, passed_in, arg_names);
     let (mut res, mut res_ctx) = eval_expression(
         EvalContext{possible_tail: true}, //there we go, tail recursion
@@ -89,13 +89,13 @@ pub(crate) fn eval_with_args_flat(ctx: EvalContext, scope: &ScopeRef, passed_in:
     Ok((res, res_ctx))
 }
 
-pub(crate) fn eval_with_args(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &SExpression, origin: Option<EvalValueRef>) -> EvalResult {
+pub(crate) fn eval_with_args(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<EvalValueRef>) -> EvalResult {
     let func_scope = scope.enter(origin.clone())?;
     eval_with_args_flat(ctx, &func_scope, passed_in, arg_names, expression, origin)
 }
 
 
-fn eval_all(_ctx: EvalContext, scope: &ScopeRef, exps: & [SExpression]) -> Result<Vec<EvalValueRef>, EvalError> {
+fn eval_all(_ctx: EvalContext, scope: &ScopeRef, exps: & [PosExpression]) -> Result<Vec<EvalValueRef>, EvalError> {
     exps.iter()
         .map(|exp| eval_expression(EvalContext::none(), scope, exp).map(|t| t.0))
         .collect()
@@ -115,7 +115,7 @@ pub(crate) fn eval_call_with_values(ctx: EvalContext, scope: &ScopeRef, callable
 }
 
 
-pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Callable, args: &'_ [SExpression], origin: Option<EvalValueRef>) -> EvalResult {
+pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Callable, args: &'_ [PosExpression], origin: Option<EvalValueRef>) -> EvalResult {
     match callable {
         Callable::Internal(bi) => {
             let exp_args: Vec<BuiltInFunctionArg> = args.iter().map(|exp| BuiltInFunctionArg::Exp(exp.clone())).collect();
@@ -129,7 +129,7 @@ pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Calla
     }
 }
 
-pub(crate) fn eval_list(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<SExpression>) -> EvalResult {
+pub(crate) fn eval_list(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<PosExpression>) -> EvalResult {
     if expressions.is_empty(){
         return Ok((EvalValue::Unit.to_ref(), EvalContext::none())); //not sure how well this notation is, but whatever
     }
@@ -142,7 +142,7 @@ pub(crate) fn eval_list(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec
     eval_callable(ctx, scope, callable, tail, Some(head_value.clone()))
 }
 
-fn eval_block_iter(ctx: EvalContext, scope: &ScopeRef, iterator: &mut Peekable<Iter<'_, SExpression>>, last: (EvalValueRef, EvalContext)) -> EvalResult {
+fn eval_block_iter(ctx: EvalContext, scope: &ScopeRef, iterator: &mut Peekable<Iter<'_, PosExpression>>, last: (EvalValueRef, EvalContext)) -> EvalResult {
     match iterator.next() {
         None => Ok(last),
         Some(exp) =>
@@ -158,7 +158,7 @@ fn eval_block_iter(ctx: EvalContext, scope: &ScopeRef, iterator: &mut Peekable<I
     }
 }
 
-pub(crate) fn eval_block(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<SExpression>, flat: bool) -> EvalResult {
+pub(crate) fn eval_block(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<PosExpression>, flat: bool) -> EvalResult {
     let block_scope = scope.enter(None)?;
     eval_block_iter(ctx, if flat {scope} else {&block_scope}, &mut expressions.iter().peekable(), (EvalValue::Unit.to_ref(), EvalContext::none()))
 }

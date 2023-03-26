@@ -13,7 +13,7 @@ use crate::stdlib::util::{func};
 fn comparison_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, operation: fn(Numeric, Numeric) -> bool) -> EvalResult {
     let head: Numeric = match args.try_pos(0)?.evaluated(scope)?.0.as_ref(){
         EvalValue::Numeric(i) => Ok(i.clone()),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
 
     let tail = &args.values[1..];
@@ -21,7 +21,7 @@ fn comparison_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, operation: 
     for v in tail {
         let r_value = match v.evaluated(scope)?.0.as_ref() {
             EvalValue::Numeric(n) => Ok(n.clone()),
-            _ => Err(EvalError::InvalidType),
+            _ => Err(EvalError::InvalidType(None)),
         }?;
 
         if !operation(head.clone(), r_value){

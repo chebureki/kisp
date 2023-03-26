@@ -25,7 +25,7 @@ pub struct Cursor{
 }
 
 impl Cursor{
-    fn new() -> Cursor {
+    pub(crate) fn new() -> Cursor {
         Cursor{abs_position: 0, line:1, column: 1, reach: None}
     }
     fn next_column(&self) -> Cursor {

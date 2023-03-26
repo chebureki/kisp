@@ -1,4 +1,4 @@
-use crate::ast::SExpression;
+use crate::ast::{PosExpression, SExpression};
 use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
@@ -8,9 +8,9 @@ use crate::stdlib::util::{func};
 
 //variable assignment, non mutable
 fn let_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    let identifier = match args.try_pos(0)?.try_expression()? {
-        SExpression::Symbol(i) => Ok(i),
-        _ => Err(EvalError::InvalidType),
+    let identifier = match args.try_pos(0)?.try_expression()?{
+        PosExpression{exp: SExpression::Symbol(i), ..}=> Ok(i),
+        PosExpression{cursor, ..} => Err(EvalError::InvalidType(None)),
     }?;
     //if let Some(_) = scope.lookup(identifier) {
     //    return Err(EvalError::Reassignment);
@@ -23,14 +23,14 @@ fn let_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
 
 fn get_argument_names(possible_args: &BuiltInFunctionArg) -> Result<Vec<String>, EvalError> {
     let block_content = match possible_args.try_expression()? {
-        SExpression::Block(c) => Ok(c),
-        _ => Err(EvalError::InvalidType),
+        PosExpression{exp: SExpression::Block(c), ..} => Ok(c),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
     block_content.iter()
         .map(|exp|
             match exp {
-                SExpression::Symbol(i) => Ok(i.clone()),
-                _ => Err(EvalError::InvalidType)
+                PosExpression{exp: SExpression::Symbol(i), ..} => Ok(i.clone()),
+                _ => Err(EvalError::InvalidType(None))
             }
         )
         .collect()
@@ -39,12 +39,12 @@ fn get_argument_names(possible_args: &BuiltInFunctionArg) -> Result<Vec<String>,
 
 fn function_declaration_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let name: String = match args.try_pos(0)?.try_expression()? {
-        SExpression::Symbol(i) => Ok(i.clone()),
-        _ => Err(EvalError::InvalidType),
+        PosExpression{exp: SExpression::Symbol(i), ..} => Ok(i.clone()),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
 
     let arg_names: Vec<String> = get_argument_names(args.try_pos(1)?)?;
-    let body: &SExpression = args.try_pos(2)?.try_expression()?;
+    let body = args.try_pos(2)?.try_expression()?;
     let function = Function::from(
         scope.clone(),
         name.clone(),

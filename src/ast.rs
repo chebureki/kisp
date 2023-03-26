@@ -1,3 +1,5 @@
+use crate::lexer::Cursor;
+
 //https://iamwilhelm.github.io/bnf-examples/lisp
 /*
 s_expression = atomic_symbol \
@@ -20,7 +22,13 @@ empty = " "
 pub enum SExpression{
     Symbol(String),
     Number(i32),
-    DotExpression(Box<SExpression>,Box<SExpression>),
-    List(Vec<SExpression>),
-    Block(Vec<SExpression>),
+    //DotExpression(Box<SExpression>,Box<SExpression>),
+    List(Vec<PosExpression>),
+    Block(Vec<PosExpression>),
+}
+
+#[derive(Debug, Clone)]
+pub struct PosExpression{
+    pub cursor: Cursor,
+    pub exp: SExpression
 }

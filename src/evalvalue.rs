@@ -3,8 +3,9 @@ use std::fmt::{Debug, Display, Formatter, Pointer, Write};
 use std::slice::Iter;
 use std::rc::Rc;
 use std::task::Context;
-use crate::ast::SExpression;
+use crate::ast::{PosExpression, SExpression};
 use crate::interpreter::eval_expression;
+use crate::lexer::Cursor;
 use crate::numeric::Numeric;
 use crate::scope::ScopeRef;
 use crate::list::List;
@@ -13,11 +14,11 @@ pub struct Function{
     pub in_scope: ScopeRef,
     pub name: String,
     pub arguments: Vec<String>,
-    pub body: SExpression,
+    pub body: PosExpression,
 }
 
 impl Function{
-    pub fn from(in_scope: ScopeRef, name: String, arguments: Vec<String>, body: &SExpression) -> Function {
+    pub fn from(in_scope: ScopeRef, name: String, arguments: Vec<String>, body: &PosExpression) -> Function {
         Function{in_scope, name, arguments, body: body.clone()}
     }
 }
@@ -31,12 +32,12 @@ pub enum Callable{
 pub struct Lambda {
     pub in_scope: ScopeRef,
     pub arguments: Vec<String>,
-    pub body: SExpression,
+    pub body: PosExpression,
 }
 
 pub enum BuiltInFunctionArg{
     Val(EvalValueRef),
-    Exp(SExpression),
+    Exp(PosExpression),
 }
 
 pub struct BuiltInFunctionArgs{
@@ -53,9 +54,9 @@ impl BuiltInFunctionArg{
 
 
 
-    pub fn try_expression<'c>(&'c self) -> Result<&'c SExpression, EvalError> {
+    pub fn try_expression<'c>(&'c self) -> Result<&'c PosExpression, EvalError> {
         match self {
-            BuiltInFunctionArg::Val(_) => Err(EvalError::InvalidType),
+            BuiltInFunctionArg::Val(_) => Err(EvalError::InvalidType(None)),
             BuiltInFunctionArg::Exp(e) => Ok(e)
         }
     }
@@ -142,7 +143,7 @@ pub enum EvalError{
     Other(String),
     UnknownSymbol(String),
     CallingNonCallable,
-    InvalidType,
+    InvalidType(Option<Cursor>), //TODO: this should NOT be optional
     MissingArgument,
     NotImplemented,
     Reassignment,
