@@ -26,15 +26,17 @@ fn map_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
         _ => Err(EvalError::InvalidType),
     }?;
 
-    let as_mono_args: Vec<Vec<EvalValueRef>> = list.iterator()
-        .map(|v| vec![v.clone()]).collect();
-
-    //TODO: this creates a vec, which just turns into a linked list again
-    let mapped_values = as_mono_args.into_iter()
+    let list = list.iterator()
         .map(|mono_arg|
-            eval_call_with_values(EvalContext::none(), scope, callable, mono_arg, None).map(|e| e.0)
-        ).collect::<Result<Vec<EvalValueRef>,EvalError>>()?;
-    Ok((EvalValue::List(List::from(mapped_values)).to_ref(), EvalContext::none()))
+            eval_call_with_values(EvalContext::none(), scope, callable, vec![mono_arg], None).map(|e| e.0)
+        )
+        //TODO: this collect annoys me, but fine for now
+        //terminate early on error
+        .collect::<Result<Vec<EvalValueRef>,EvalError>>()?
+        .into_iter()
+        .rev()
+        .collect();
+    Ok((EvalValue::List(list).to_ref(), EvalContext::none()))
 }
 
 fn wrap_opt_to_unit(v: Option<EvalValueRef>) -> EvalValueRef {
