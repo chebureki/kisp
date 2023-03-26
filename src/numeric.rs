@@ -88,7 +88,7 @@ impl Display for Numeric {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Numeric::Integer(i) => Display::fmt(i, f),
-            Numeric::Floating(i) => Display::fmt(i, f),
+            Numeric::Floating(i) => f.write_fmt(format_args!("{:e}", i)),
         }
     }
 }
