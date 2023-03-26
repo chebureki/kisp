@@ -12,6 +12,23 @@ mod comparison;
 mod lang;
 mod lists;
 
+#[macro_export]
+macro_rules! expect_type {
+    ($value: expr, $path: path, $cursor: expr) => {
+        match $value.as_ref(){
+            $path(a) => Ok(a),
+            _ => Err(EvalError::InvalidType($cursor))
+        }
+        /*
+        let list = match arg_value.as_ref() {
+            EvalValue::List(l) => Ok(l),
+            _ => Err(EvalError::InvalidType(None)),
+        }?
+         */
+
+
+    }
+}
 
 pub fn std_lib_functions() -> Vec<BuiltinFunction> {
     vec![

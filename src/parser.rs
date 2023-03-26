@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::iter::Peekable;
 use crate::ast;
 use crate::lexer::{Cursor, Token, TokenIterator, TokenValue, Lexer};
-use crate::ast::SExpression;
+use crate::ast::{PosExpression, SExpression};
 use crate::lexer::TokenStream;
 use crate::parser::ParserError::NoMatchingParser;
 
@@ -14,10 +14,10 @@ pub enum ParserError{
     //UnclosedParenthesis(Cursor),
 }
 
-pub type ParserResult = Result<Option<ast::SExpression>, ParserError>;
+pub type ParserResult = Result<Option<ast::PosExpression>, ParserError>;
 type Parser = fn(&mut TokenStream) -> ParserResult;
 
-fn parse_iter(stream: &mut TokenStream, acc: Vec<SExpression>) -> Result<Vec<SExpression>, ParserError>{
+fn parse_iter(stream: &mut TokenStream, acc: Vec<PosExpression>) -> Result<Vec<PosExpression>, ParserError>{
     let mut acc = acc;
     match parse_s_expression(stream) {
         Ok(Some(e)) => {acc.push(e); parse_iter(stream, acc)},
@@ -25,10 +25,10 @@ fn parse_iter(stream: &mut TokenStream, acc: Vec<SExpression>) -> Result<Vec<SEx
         Err(e) => Err(e),
     }
 }
-pub fn parse(stream: &mut TokenStream) -> Result<SExpression, ParserError> {
+pub fn parse(stream: &mut TokenStream) -> Result<PosExpression, ParserError> {
     let stack = parse_iter(stream, Vec::new())?;
     match stream.peek().unwrap() {
-        Token{value: TokenValue::EOF, ..} => Ok(SExpression::Block(stack)),
+        Token{value: TokenValue::EOF, ..} => Ok(PosExpression{exp: SExpression::Block(stack), cursor: Cursor::new()}),
         Token{value, cursor} => Err(ParserError::NoMatchingParser(cursor.clone())),
     }
 }
@@ -48,17 +48,17 @@ fn parse_s_expression(stream: &mut TokenStream) -> ParserResult {
 fn parse_atomic(stream: &mut TokenStream) -> ParserResult{
     let mut stream = stream;
     match stream.next_if(|token| matches!(token.value, TokenValue::IntToken(_)) ||matches!(token.value, TokenValue::Identifier(_))) {
-        Some(Token {value: TokenValue::Identifier(ident), ..}) => {
-            Ok(Some(SExpression::Symbol(ident)))
+        Some(Token {value: TokenValue::Identifier(ident), cursor}) => {
+            Ok(Some(PosExpression{cursor, exp: SExpression::Symbol(ident)}))
         },
-        Some(Token{value: TokenValue::IntToken(i), ..}) => {
-            Ok(Some(SExpression::Number(i)))
+        Some(Token{value: TokenValue::IntToken(i), cursor}) => {
+            Ok(Some(PosExpression{cursor, exp: SExpression::Number(i)}))
         }
         _ => { Ok(None) }
     }
 }
 
-fn parse_list_iter(stream: &mut TokenStream, acc: Vec<ast::SExpression>) -> Result<Vec<ast::SExpression>, ParserError> {
+fn parse_list_iter(stream: &mut TokenStream, acc: Vec<ast::PosExpression>) -> Result<Vec<ast::PosExpression>, ParserError> {
     let mut acc = acc;
     match parse_s_expression(stream){
         Ok(Some(exp)) => {
@@ -73,18 +73,18 @@ fn parse_list_iter(stream: &mut TokenStream, acc: Vec<ast::SExpression>) -> Resu
 fn parse_list(stream: &mut TokenStream) -> ParserResult{
     match parse_listy(stream, TokenValue::ParenthesisOpen, TokenValue::ParenthesisClose)? {
         None => Ok(None),
-        Some(acc) => Ok(Some(ast::SExpression::List(acc))),
+        Some((acc, cursor)) => Ok(Some(PosExpression{exp: ast::SExpression::List(acc), cursor})),
     }
 }
 
 fn parse_block(stream: &mut TokenStream) -> ParserResult{
     match parse_listy(stream, TokenValue::BracketOpen, TokenValue::BracketClose)? {
         None => Ok(None),
-        Some(acc) => Ok(Some(ast::SExpression::Block(acc))),
+        Some((acc, cursor)) => Ok(Some(PosExpression{cursor, exp: ast::SExpression::Block(acc)})),
     }
 }
 
-fn parse_listy(stream: &mut TokenStream, open: TokenValue, close: TokenValue) -> Result<Option<Vec<SExpression>>, ParserError>{
+fn parse_listy(stream: &mut TokenStream, open: TokenValue, close: TokenValue) -> Result<Option<(Vec<PosExpression>, Cursor)>, ParserError>{
     if stream.peek().unwrap().value != open {
         return Ok(None);
     }
@@ -94,5 +94,5 @@ fn parse_listy(stream: &mut TokenStream, open: TokenValue, close: TokenValue) ->
         return Err(ParserError::UnclosedParenthesis); //TODO: not generic enough
     }
     stream.next(); //discard close
-    Ok(Some(inner))
+    Ok(Some((inner, Cursor::new())))
 }

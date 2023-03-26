@@ -1,5 +1,6 @@
 use crate::ast::SExpression;
 use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
+use crate::expect_type;
 use crate::interpreter::eval_call_with_values;
 use crate::list::List;
 use crate::numeric::Numeric;
@@ -17,13 +18,13 @@ fn map_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
     let (evaluated_left, _) = args.try_pos(0)?.evaluated(scope)?;
     let callable = match evaluated_left.as_ref(){
         EvalValue::CallableValue(c) => Ok(c),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
 
     let (evaluated_right, _) = args.try_pos(1)?.evaluated(scope)?;
     let list = match evaluated_right.as_ref(){
         EvalValue::List(l) => Ok(l),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
 
     let list = list.iterator()
@@ -49,12 +50,12 @@ fn nth_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
     let (list_value, _) = args.try_pos(1)?.evaluated(scope)?;
     let list = match list_value.as_ref(){
         EvalValue::List(l) => Ok(l),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
 
     let pos = match args.try_pos(0)?.evaluated(scope)?.0.as_ref(){
         EvalValue::Numeric(Numeric::Integer(i)) => Ok(*i),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
 
     Ok((wrap_opt_to_unit(list.get(pos as usize)), EvalContext::none()))
@@ -65,7 +66,7 @@ fn car_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs)
     let (arg_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
     let list = match arg_value.as_ref() {
         EvalValue::List(l) => Ok(l),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
     Ok((wrap_opt_to_unit(list.head()), EvalContext::none()))
 }
@@ -75,7 +76,7 @@ fn cdr_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs)
     let (arg_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
     let list = match arg_value.as_ref() {
         EvalValue::List(l) => Ok(l),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
     Ok((EvalValue::List(list.tail()).to_ref(), EvalContext::none()))
 }
@@ -85,8 +86,12 @@ fn cons_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs
     let (arg_value, _ )  = args.try_pos(1)?.evaluated(scope)?;
     let list = match arg_value.as_ref() {
         EvalValue::List(l) => Ok(l),
-        _ => Err(EvalError::InvalidType),
+        _ => Err(EvalError::InvalidType(None)),
     }?;
+
+
+
+    let a = expect_type!(arg_value, EvalValue::List);
     let (con_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
 
     Ok((EvalValue::List(list.prepended(con_value)).to_ref(), EvalContext::none()))
