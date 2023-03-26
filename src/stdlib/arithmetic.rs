@@ -1,5 +1,4 @@
-use crate::ast::SExpression;
-use crate::evalvalue::{BuiltInFunctionArg, BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
+use crate::evalvalue::{BuiltInFunctionArgs, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
 use crate::expect_type;
@@ -24,19 +23,19 @@ fn numeric_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(
         .map(|i| (EvalValue::Numeric(i).to_ref(), EvalContext::none()))
 }
 
-fn addition_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+fn addition_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     numeric_reduction(scope, args, |a, b| a+b)
 }
 
-fn subtraction_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+fn subtraction_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     numeric_reduction(scope, args, |a, b| a-b)
 }
 
-fn multiplication_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+fn multiplication_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     numeric_reduction(scope, args, |a, b| a*b)
 }
 
-fn division_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+fn division_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     numeric_reduction(scope, args, |a, b| a/b)
 }
 

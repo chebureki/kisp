@@ -1,8 +1,6 @@
-use crate::ast::SExpression;
-use crate::evalvalue::{BuiltInFunctionArgs, EvalContext, EvalResult, EvalValue, EvalValueRef};
+use crate::evalvalue::{BuiltInFunctionArgs, EvalContext, EvalResult, EvalValue};
 use crate::scope::ScopeRef;
 use crate::evalvalue::BuiltinFunction;
-use crate::interpreter::eval_expression;
 use crate::stdlib::util::{func};
 
 fn print_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {

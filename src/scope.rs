@@ -1,9 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::process::id;
-use std::rc::{Rc, Weak};
-use crate::ast::SExpression;
-use crate::evalvalue::{Callable, EvalError, EvalValue, EvalValueRef};
+use std::rc::Rc;
+use crate::evalvalue::{EvalError, EvalValue, EvalValueRef};
 
 const MAX_STACK_DEPTH: usize = 420;
 
@@ -30,7 +28,7 @@ impl Scope {
     }
 
     pub fn enter_with_vararg(self: &Rc<Self>, vararg: Vec<Rc<EvalValue>>, origin: Option<EvalValueRef>) -> Result<Rc<Self>,EvalError> {
-        if (self.depth >= MAX_STACK_DEPTH) {
+        if self.depth >= MAX_STACK_DEPTH {
             Err(EvalError::StackOverflow)
         } else{
             Ok(

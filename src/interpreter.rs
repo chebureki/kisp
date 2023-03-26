@@ -1,10 +1,6 @@
-use std::cell::{Ref, RefCell};
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter, Octal, Write};
 use std::iter::Peekable;
 use std::rc::Rc;
 use std::slice::Iter;
-use std::thread::scope;
 use crate::ast::{PosExpression,SExpression};
 use crate::evalvalue::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs, Callable, EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef, Function, Lambda, TailCall};
 use crate::numeric::Numeric;
@@ -75,7 +71,7 @@ pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalVal
     }
 }
 
-pub(crate) fn eval_with_args_flat(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<EvalValueRef>) -> EvalResult {
+pub(crate) fn eval_with_args_flat(_ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<EvalValueRef>) -> EvalResult {
     populate_scope_with_args(&scope, passed_in, arg_names);
     let (mut res, mut res_ctx) = eval_expression(
         EvalContext{possible_tail: true}, //there we go, tail recursion

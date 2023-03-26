@@ -1,10 +1,7 @@
-use std::borrow::Borrow;
-use std::iter::Peekable;
 use crate::ast;
-use crate::lexer::{Cursor, Token, TokenIterator, TokenValue, Lexer};
+use crate::lexer::{Cursor, Token, TokenValue};
 use crate::ast::{PosExpression, SExpression};
 use crate::lexer::TokenStream;
-use crate::parser::ParserError::NoMatchingParser;
 
 #[derive(Debug)]
 pub enum ParserError{
