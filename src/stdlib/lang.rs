@@ -12,9 +12,9 @@ fn let_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
         SExpression::Symbol(i) => Ok(i),
         _ => Err(EvalError::InvalidType),
     }?;
-    if let Some(_) = scope.lookup(identifier) {
-        return Err(EvalError::Reassignment);
-    }
+    //if let Some(_) = scope.lookup(identifier) {
+    //    return Err(EvalError::Reassignment);
+    //}
 
     let (evaluated, _) = args.try_pos(1)?.evaluated(scope)?;
     scope.insert(identifier.clone(), evaluated.clone());
