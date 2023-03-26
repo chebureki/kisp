@@ -70,7 +70,7 @@ pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalVal
     }
 }
 
-pub(crate) fn eval_with_args_flat(_ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, _origin: Option<EvalValueRef>) -> EvalResult {
+pub(crate) fn eval_with_args_flat(given_ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, _origin: Option<EvalValueRef>) -> EvalResult {
     populate_scope_with_args(&scope, passed_in, arg_names);
     let (mut res, mut res_ctx) = eval_expression(
         EvalContext{possible_tail: true}, //there we go, tail recursion
@@ -81,7 +81,7 @@ pub(crate) fn eval_with_args_flat(_ctx: EvalContext, scope: &ScopeRef, passed_in
         populate_scope_with_args(&scope, tc.args.clone(), arg_names);
         (res, res_ctx) = eval_expression(EvalContext{possible_tail: true}, scope, expression)?;
     }
-    Ok((res, res_ctx))
+    Ok((res, EvalContext{possible_tail: given_ctx.possible_tail && res_ctx.possible_tail}))
 }
 
 pub(crate) fn eval_with_args(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValueRef>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<EvalValueRef>) -> EvalResult {
