@@ -1,6 +1,4 @@
 use std::io;
-use std::io::BufRead;
-
 
 use std::sync::Arc;
 use linefeed::{Interface, ReadResult};

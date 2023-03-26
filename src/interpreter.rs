@@ -39,7 +39,6 @@ pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'
         SExpression::Number(i) => Ok((EvalValue::Numeric(Numeric::Integer(*i)).to_ref(), EvalContext::none())),
         SExpression::List(expressions) => eval_list(ctx, scope, expressions),
         SExpression::Block(expressions) => eval_block(ctx, scope, expressions, false),
-        _ => todo!(),
     }
 }
 

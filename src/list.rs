@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Formatter};
 
 
 use crate::evalvalue::{EvalValueRef};

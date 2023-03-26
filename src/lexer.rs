@@ -1,5 +1,3 @@
-#![feature(generic_associated_types)]
-
 use std::iter::Peekable;
 
 mod langchars {
@@ -21,12 +19,12 @@ pub struct Cursor{
     line: usize,
     column: usize,
     abs_position: usize,
-    reach: Option<usize>,
+    _reach: Option<usize>,
 }
 
 impl Cursor{
     pub(crate) fn new() -> Cursor {
-        Cursor{abs_position: 0, line:1, column: 1, reach: None}
+        Cursor{abs_position: 0, line:1, column: 1, _reach: None}
     }
     fn next_column(&self) -> Cursor {
         self.next_columns(1)
@@ -134,7 +132,7 @@ impl<'t> Lexer<'t>{
                     let value = Lexer::possible_identifier_upgrade(&i).unwrap_or(TokenValue::Identifier(i));
                     (
                         Token{
-                        cursor: Cursor{reach: Some(after_cursor.abs_position-cursor.abs_position), ..*cursor},
+                        cursor: Cursor{ _reach: Some(after_cursor.abs_position-cursor.abs_position), ..*cursor},
                         value
                     },
                         after_cursor

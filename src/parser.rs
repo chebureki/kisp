@@ -12,7 +12,7 @@ pub enum ParserError{
 }
 
 pub type ParserResult = Result<Option<ast::PosExpression>, ParserError>;
-type Parser = fn(&mut TokenStream) -> ParserResult;
+//type Parser = fn(&mut TokenStream) -> ParserResult;
 
 fn parse_iter(stream: &mut TokenStream, acc: Vec<PosExpression>) -> Result<Vec<PosExpression>, ParserError>{
     let mut acc = acc;

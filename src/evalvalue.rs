@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter, Pointer, Write};
+use std::fmt::{Debug, Display, Formatter};
 
 use std::rc::Rc;
 
