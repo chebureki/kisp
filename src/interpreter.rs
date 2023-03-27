@@ -12,9 +12,9 @@ use crate::value::callable::{Callable, Function, Lambda, TailCall};
 
 fn env_scope() -> ScopeRef {
     let scope = Scope::new();
-    scope.insert("true".to_string(), EvalValue::True.to_ref());
+    scope.insert("true".to_string(), EvalValue::True.to_rc());
     for bi in std_lib_functions().into_iter() {
-        scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi)).to_ref())
+        scope.insert(bi.name.to_string(), EvalValue::CallableValue(Callable::Internal(bi)).to_rc())
     }
     scope
 }
@@ -39,7 +39,7 @@ pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'
             Err(EvalError::UnknownSymbol(i.clone())),
             |v| Ok((v, EvalContext::none()))
         ),
-        SExpression::Number(i) => Ok((EvalValue::Numeric(i.clone()).to_ref(), EvalContext::none())),
+        SExpression::Number(i) => Ok((EvalValue::Numeric(i.clone()).to_rc(), EvalContext::none())),
         SExpression::List(expressions) => eval_list(ctx, scope, expressions),
         SExpression::Block(expressions) => eval_block(ctx, scope, expressions, false),
     }
@@ -67,7 +67,7 @@ pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalVal
     let tc_detected = is_tail_call(&ctx, &scope.origin,&origin);
     if tc_detected{
         let tc: TailCall = TailCall{ function: origin.unwrap().clone(), args: passed_in };
-        Ok((EvalValue::TailCallValue(tc).to_ref(),ctx))
+        Ok((EvalValue::TailCallValue(tc).to_rc(), ctx))
     }else {
         eval_with_args(ctx, scope, passed_in, arg_names, expression, origin)
     }
@@ -116,7 +116,7 @@ pub(crate) fn eval_call_with_values(ctx: EvalContext, scope: &ScopeRef, callable
 pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Callable, args: &'_ [PosExpression], origin: Option<EvalValueRef>) -> EvalResult {
     match callable {
         Callable::Internal(bi) => {
-            let exp_args: Vec<EvalValueRef> = args.iter().map(|exp| EvalValue::Expression(exp.clone()).to_ref()).collect();
+            let exp_args: Vec<EvalValueRef> = args.iter().map(|exp| EvalValue::Expression(exp.clone()).to_rc()).collect();
             (bi.callback)(scope, ctx, BuiltInFunctionArgs::from(exp_args))
         },
         Callable::Function(Function{arguments: _, body: _,..}) =>
@@ -129,7 +129,7 @@ pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Calla
 
 pub(crate) fn eval_list(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<PosExpression>) -> EvalResult {
     if expressions.is_empty(){
-        return Ok((EvalValue::Unit.to_ref(), EvalContext::none())); //not sure how well this notation is, but whatever
+        return Ok((EvalValue::Unit.to_rc(), EvalContext::none())); //not sure how well this notation is, but whatever
     }
     let (head_value, _) = eval_expression(EvalContext::none(), scope, expressions.first().unwrap())?;
     let tail = &expressions[1..];
@@ -158,5 +158,5 @@ fn eval_block_iter(ctx: EvalContext, scope: &ScopeRef, iterator: &mut Peekable<I
 
 pub(crate) fn eval_block(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<PosExpression>, flat: bool) -> EvalResult {
     let block_scope = scope.enter(None)?;
-    eval_block_iter(ctx, if flat {scope} else {&block_scope}, &mut expressions.iter().peekable(), (EvalValue::Unit.to_ref(), EvalContext::none()))
+    eval_block_iter(ctx, if flat {scope} else {&block_scope}, &mut expressions.iter().peekable(), (EvalValue::Unit.to_rc(), EvalContext::none()))
 }

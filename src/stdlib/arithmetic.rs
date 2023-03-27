@@ -20,7 +20,7 @@ fn numeric_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(
     let value_mapping =
         |value: &EvalValueRef| expect_type!(value, EvalValue::Numeric(n) => n.clone(), None);
     function_with_reduction(scope, args, value_mapping, reduction)
-        .map(|i| (EvalValue::Numeric(i).to_ref(), EvalContext::none()))
+        .map(|i| (EvalValue::Numeric(i).to_rc(), EvalContext::none()))
 }
 
 fn addition_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {

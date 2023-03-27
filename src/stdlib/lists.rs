@@ -12,7 +12,7 @@ use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
 fn list_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let vals: Vec<EvalValueRef> = args.eval_all(scope)?;
     let list = List::from(vals.clone());
-    Ok((EvalValue::List(list).to_ref(), EvalContext::none()))
+    Ok((EvalValue::List(list).to_rc(), EvalContext::none()))
 }
 
 fn map_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
@@ -32,12 +32,12 @@ fn map_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
         .into_iter()
         .rev()
         .collect();
-    Ok((EvalValue::List(list).to_ref(), EvalContext::none()))
+    Ok((EvalValue::List(list).to_rc(), EvalContext::none()))
 }
 
 fn wrap_opt_to_unit(v: Option<EvalValueRef>) -> EvalValueRef {
     match v {
-        None => EvalValue::Unit.to_ref(),
+        None => EvalValue::Unit.to_rc(),
         Some(v) => v
     }
 }
@@ -59,7 +59,7 @@ fn car_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs)
 fn cdr_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs) -> EvalResult {
     let (arg_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
     let list = expect_type!(arg_value, EvalValue::List(l) => l, None)?;
-    Ok((EvalValue::List(list.tail()).to_ref(), EvalContext::none()))
+    Ok((EvalValue::List(list.tail()).to_rc(), EvalContext::none()))
 }
 
 
@@ -67,7 +67,7 @@ fn cons_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs
     let (arg_value, _ )  = args.try_pos(1)?.evaluated(scope)?;
     let list = expect_type!(arg_value, EvalValue::List(l) => l, None)?;
     let (con_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
-    Ok((EvalValue::List(list.prepended(con_value)).to_ref(), EvalContext::none()))
+    Ok((EvalValue::List(list.prepended(con_value)).to_rc(), EvalContext::none()))
 }
 
 

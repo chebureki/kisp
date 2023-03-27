@@ -10,7 +10,7 @@ fn print_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs
         .collect::<Vec<String>>()
         .join(" ");
     println!("{}", string);
-    Ok((EvalValue::Unit.to_ref(), EvalContext::none()))
+    Ok((EvalValue::Unit.to_rc(), EvalContext::none()))
 }
 
 pub fn std_output() -> Vec<BuiltinFunction> {

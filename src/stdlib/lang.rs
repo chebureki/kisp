@@ -53,7 +53,7 @@ fn function_declaration_callback(scope: &ScopeRef, _ctx: EvalContext, args: Buil
         arg_names,
         body
     );
-    let function_value = EvalValue::CallableValue(Callable::Function(function)).to_ref();
+    let function_value = EvalValue::CallableValue(Callable::Function(function)).to_rc();
     scope.insert(name, function_value.clone());
     Ok((function_value, EvalContext::none()))
 }
@@ -66,7 +66,7 @@ fn lambda_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
         arguments,
         body,
     };
-    let lambda_value = EvalValue::CallableValue(Callable::Lambda(lambda)).to_ref();
+    let lambda_value = EvalValue::CallableValue(Callable::Lambda(lambda)).to_rc();
     Ok((lambda_value, EvalContext::none()))
 }
 
@@ -84,7 +84,7 @@ fn if_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) ->
                 scope,
                 else_expression.unwrap()?
             ),
-        EvalValue::Unit if else_expression.is_none() => Ok((EvalValue::Unit.to_ref(), EvalContext::none())),
+        EvalValue::Unit if else_expression.is_none() => Ok((EvalValue::Unit.to_rc(), EvalContext::none())),
         // also perhaps a tail
         _ => eval_expression(ctx, scope, then_expression)
     }
@@ -92,7 +92,7 @@ fn if_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) ->
 
 fn quote_callback(_scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let exp = args.try_pos(0)?.try_expression()?;
-    Ok( (EvalValue::Expression(exp.clone()).to_ref(), EvalContext::none()) )
+    Ok( (EvalValue::Expression(exp.clone()).to_rc(), EvalContext::none()) )
 }
 
 fn eval_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {

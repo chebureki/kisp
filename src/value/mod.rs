@@ -36,7 +36,7 @@ pub enum EvalValue{
 pub type EvalValueRef = Rc<EvalValue>;
 
 impl EvalValue{
-    pub fn to_ref(self) -> EvalValueRef{
+    pub fn to_rc(self) -> EvalValueRef{
         Rc::new(self)
     }
 }

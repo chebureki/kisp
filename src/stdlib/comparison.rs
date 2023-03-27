@@ -15,10 +15,10 @@ fn comparison_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, operation: 
     for v in tail {
         let r_value = expect_type!(v.evaluated(scope)?.0, EvalValue::Numeric(i) => i.clone(), None)?;
         if !operation(head.clone(), r_value){
-            return Ok((EvalValue::Unit.to_ref(), EvalContext::none())); //early return, don't even evaluate the rest
+            return Ok((EvalValue::Unit.to_rc(), EvalContext::none())); //early return, don't even evaluate the rest
         }
     }
-    Ok((EvalValue::True.to_ref(), EvalContext::none()))
+    Ok((EvalValue::True.to_rc(), EvalContext::none()))
 }
 
 fn gt_callback(scope: &ScopeRef, _ctx: EvalContext,  args: BuiltInFunctionArgs) -> EvalResult {
