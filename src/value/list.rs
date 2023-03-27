@@ -1,17 +1,18 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 
 
 use crate::value::{EvalValueRef};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Con {
     value: EvalValueRef,
-    next: Option<Box<Con>>,
+    next: Option<Rc<Con>>, //RC, so multiple lists can have the same values
 }
 
 #[derive(Debug)]
-pub struct List(Option<Box<Con>>); //Box is unnecessary, makes code simpler, but is less efficient TODO!
+pub struct List(Option<Rc<Con>>);
 
 impl List{
     pub fn from(v: Vec<EvalValueRef>) -> List {
@@ -42,7 +43,7 @@ impl List{
     }
 
     pub fn prepended(&self, value: EvalValueRef) -> List{
-        List(Some(Box::new(Con{ value, next: self.0.clone()})))
+        List(Some(Rc::new(Con{ value, next: self.0.clone()})))
     }
 }
 
@@ -52,14 +53,14 @@ impl FromIterator<EvalValueRef> for List{
         let iterator = iter.into_iter();
         let head_opt = iterator
             .fold(None, |next,value|
-                Some(Box::new(Con{value, next}))
+                Some(Rc::new(Con{value, next}))
             );
         List(head_opt)
     }
 }
 
 
-pub struct ListIterator(Option<Box<Con>>);
+pub struct ListIterator(Option<Rc<Con>>);
 impl Iterator for ListIterator{
     type Item = EvalValueRef;
 
