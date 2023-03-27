@@ -1,12 +1,13 @@
 use crate::ast::PosExpression;
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
-use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, EvalValueRef};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::EvalValue::Reference;
 
 //wrappers for helper functions
 
 pub struct BuiltInFunctionArg{
-    pub value: EvalValueRef,
+    pub value: EvalValue,
 }
 
 pub struct BuiltInFunctionArgs{
@@ -17,29 +18,36 @@ pub type InternalCallback = fn(&'_ ScopeRef, EvalContext, BuiltInFunctionArgs) -
 
 impl BuiltInFunctionArg{
     pub fn evaluated(&self, scope: &ScopeRef) -> EvalResult {
-        match self.value.as_ref() {
-            EvalValue::Expression(e) => eval_expression(EvalContext::none(), scope, e),
+        match &self.value {
+            Reference(rc) => match rc.as_ref(){
+                ReferenceValue::Expression(e) => eval_expression(EvalContext::none(), scope, e),
+                _ => Ok((self.value.clone(), EvalContext::none()))
+            },
             e => Ok((self.value.clone(), EvalContext::none())),
 
         }
     }
 
     pub fn try_expression<'c>(&'c self) -> Result<&'c PosExpression, EvalError> {
-        match self.value.as_ref() {
-            EvalValue::Expression(e) => Ok(e),
+        match &self.value {
+            Reference(rc) => match rc.as_ref(){
+                ReferenceValue::Expression(e) => Ok(e),
+                _ => Err(EvalError::InvalidType(None))
+            },
             _ => Err(EvalError::InvalidType(None)),
+
         }
     }
 }
 
 impl BuiltInFunctionArgs{
-    pub fn from(values: Vec<EvalValueRef>) -> BuiltInFunctionArgs{
+    pub fn from(values: Vec<EvalValue>) -> BuiltInFunctionArgs{
         BuiltInFunctionArgs{
             values: values.into_iter().map(|value| BuiltInFunctionArg{value}).collect()
         }
     }
 
-    pub fn eval_all(self, scope: &ScopeRef) -> Result<Vec<EvalValueRef>, EvalError> {
+    pub fn eval_all(self, scope: &ScopeRef) -> Result<Vec<EvalValue>, EvalError> {
         self.values
             .into_iter()
             //discard ctx, cuz who cares

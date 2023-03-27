@@ -1,9 +1,10 @@
 use std::fmt;
 use std::fmt::{Debug, Formatter};
+use std::rc::Rc;
 use crate::ast::PosExpression;
 use crate::scope::ScopeRef;
 use crate::value::builtin::BuiltinFunction;
-use crate::value::EvalValueRef;
+use crate::value::{EvalValue, ReferenceValue};
 
 pub struct Function{
     pub in_scope: ScopeRef,
@@ -33,8 +34,8 @@ pub struct Lambda {
 
 #[derive(Debug)]
 pub struct TailCall{
-    pub function: EvalValueRef,
-    pub args: Vec<EvalValueRef>,
+    pub function: Rc<ReferenceValue>,
+    pub args: Vec<EvalValue>,
 }
 
 

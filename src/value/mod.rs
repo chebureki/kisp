@@ -16,14 +16,21 @@ pub mod callable;
 pub mod builtin;
 pub mod numeric;
 
+#[derive(Debug, Clone)]
+pub enum Copyable{
+    Numeric(Numeric),
+    Unit,
+    True,
+}
+
+#[derive(Debug, Clone)]
+pub enum EvalValue{
+    Copyable(Copyable),
+    Reference(Rc<ReferenceValue>)
+}
 
 #[derive(Debug)]
-pub enum EvalValue{
-    //IntValue(i32), //TODO: remove
-    Numeric(Numeric),
-    StringValue(String),
-    Unit,
-    True, // anything non nil
+pub enum ReferenceValue {
     //False, //really just nil
     CallableValue(Callable),
     List(List),
@@ -33,26 +40,40 @@ pub enum EvalValue{
     TailCallValue(TailCall),
 }
 
-pub type EvalValueRef = Rc<EvalValue>;
+//pub type EvalValueRef = Rc<ReferenceValue>;
 
-impl EvalValue{
-    pub fn to_rc(self) -> EvalValueRef{
+impl ReferenceValue {
+    pub fn to_rc(self) -> Rc<ReferenceValue>{
         Rc::new(self)
     }
 }
 
-impl Display for EvalValue {
+impl Display for ReferenceValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            //EvalValue::IntValue(i) => f.write_str(i.to_string().as_str()),
-            EvalValue::StringValue(s) => f.write_str(s.as_str()),
-            EvalValue::Unit => f.write_str("unit"),
-            EvalValue::True => f.write_str("true"),
-            EvalValue::CallableValue(c) => c.fmt(f),
-            EvalValue::List(list) => Display::fmt(list,f),
-            EvalValue::TailCallValue(_) => f.write_str("<tail-call>"),
-            EvalValue::Numeric(n) => Display::fmt(n, f),
-            EvalValue::Expression(PosExpression{exp,..}) => f.write_fmt(format_args!("'{}", exp)),
+            ReferenceValue::CallableValue(c) => c.fmt(f),
+            ReferenceValue::List(list) => Display::fmt(list, f),
+            ReferenceValue::TailCallValue(_) => f.write_str("<tail-call>"),
+            ReferenceValue::Expression(PosExpression{exp,..}) => f.write_fmt(format_args!("'{}", exp)),
+        }
+    }
+}
+
+impl Display for Copyable{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Copyable::Numeric(n) => Display::fmt(n, f),
+            Copyable::Unit => f.write_str("unit"),
+            Copyable::True => f.write_str("true"),
+        }
+    }
+}
+
+impl Display for EvalValue{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            EvalValue::Copyable(c) => Display::fmt(c, f),
+            EvalValue::Reference(r) => Display::fmt(r,f),
         }
     }
 }
@@ -71,7 +92,7 @@ pub enum EvalError{
 }
 
 
-pub type EvalResult = Result<(EvalValueRef, EvalContext),EvalError>;
+pub type EvalResult = Result<(EvalValue, EvalContext),EvalError>;
 
 //used only for tail recursion ... for now
 pub struct EvalContext{

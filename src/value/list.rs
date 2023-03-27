@@ -1,13 +1,12 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
+use crate::value::EvalValue;
 
-
-use crate::value::{EvalValueRef};
 
 #[derive(Debug)]
 struct Con {
-    value: EvalValueRef,
+    value: EvalValue,
     next: Option<Rc<Con>>, //RC, so multiple lists can have the same values
 }
 
@@ -15,11 +14,11 @@ struct Con {
 pub struct List(Option<Rc<Con>>);
 
 impl List{
-    pub fn from(v: Vec<EvalValueRef>) -> List {
+    pub fn from(v: Vec<EvalValue>) -> List {
         v.into_iter().rev().collect()
     }
 
-    pub fn get(&self, n: usize) -> Option<EvalValueRef> {
+    pub fn get(&self, n: usize) -> Option<EvalValue> {
         self.iterator().nth(n).clone()
     }
 
@@ -30,7 +29,7 @@ impl List{
         }
     }
 
-    pub fn head(&self) -> Option<EvalValueRef> {
+    pub fn head(&self) -> Option<EvalValue> {
         match &self.0 {
             None => None,
             Some(con) => Some(con.value.clone()),
@@ -42,14 +41,14 @@ impl List{
         ListIterator(self.0.clone())
     }
 
-    pub fn prepended(&self, value: EvalValueRef) -> List{
+    pub fn prepended(&self, value: EvalValue) -> List{
         List(Some(Rc::new(Con{ value, next: self.0.clone()})))
     }
 }
 
-impl FromIterator<EvalValueRef> for List{
+impl FromIterator<EvalValue> for List{
     //TODO: due to my atrocious programming skills, it will be collected in reverse
-    fn from_iter<T: IntoIterator<Item=EvalValueRef>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item=EvalValue>>(iter: T) -> Self {
         let iterator = iter.into_iter();
         let head_opt = iterator
             .fold(None, |next,value|
@@ -62,7 +61,7 @@ impl FromIterator<EvalValueRef> for List{
 
 pub struct ListIterator(Option<Rc<Con>>);
 impl Iterator for ListIterator{
-    type Item = EvalValueRef;
+    type Item = EvalValue;
 
     fn next(&mut self) -> Option<Self::Item> {
         match &self.0 {

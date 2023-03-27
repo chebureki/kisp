@@ -5,9 +5,10 @@ use linefeed::{Interface, ReadResult};
 
 use kisp::lexer::Lexer;
 use kisp::{interpreter, parser};
-use kisp::value::{EvalValueRef};
+use kisp::value;
 
 use kisp::scope::ScopeRef;
+use kisp::value::EvalValue;
 
 const HISTORY_FILE: &str = ".kisp-history";
 fn main() -> io::Result<()>{
@@ -51,7 +52,7 @@ fn main() -> io::Result<()>{
     Ok(() )
 }
 
-fn do_line(env: Option<ScopeRef>, line: String) -> (Result<EvalValueRef, String>, Option<ScopeRef>) {
+fn do_line(env: Option<ScopeRef>, line: String) -> (Result<EvalValue, String>, Option<ScopeRef>) {
     let lexer = Lexer::from_text(line.as_str());
     let mut iter = lexer.into_iter();
     let ast = match parser::parse(&mut iter) {

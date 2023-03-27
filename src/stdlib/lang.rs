@@ -1,6 +1,5 @@
 use crate::ast::{PosExpression, SExpression};
-use crate::expect_type;
-use crate::value::{EvalContext, EvalError, EvalResult, EvalValue};
+use crate::value::{Copyable, EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::{func};
@@ -53,7 +52,7 @@ fn function_declaration_callback(scope: &ScopeRef, _ctx: EvalContext, args: Buil
         arg_names,
         body
     );
-    let function_value = EvalValue::CallableValue(Callable::Function(function)).to_rc();
+    let function_value =  EvalValue::Reference(ReferenceValue::CallableValue(Callable::Function(function)).to_rc());
     scope.insert(name, function_value.clone());
     Ok((function_value, EvalContext::none()))
 }
@@ -66,40 +65,47 @@ fn lambda_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
         arguments,
         body,
     };
-    let lambda_value = EvalValue::CallableValue(Callable::Lambda(lambda)).to_rc();
+    let lambda_value = EvalValue::Reference(ReferenceValue::CallableValue(Callable::Lambda(lambda)).to_rc());
     Ok((lambda_value, EvalContext::none()))
 }
 
 fn if_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+
     let (condition, _) = args.try_pos(0)?.evaluated(scope)?;
     let else_expression = args.try_pos(2)
         .ok()
         .map(|v| v.try_expression())
         ;
     let then_expression = args.try_pos(1)?.try_expression()?;
-    match condition.as_ref() {
-        EvalValue::Unit if else_expression.is_some() =>
-            eval_expression(
-                ctx,// could be a tail call
-                scope,
-                else_expression.unwrap()?
-            ),
-        EvalValue::Unit if else_expression.is_none() => Ok((EvalValue::Unit.to_rc(), EvalContext::none())),
-        // also perhaps a tail
-        _ => eval_expression(ctx, scope, then_expression)
+    match condition {
+        EvalValue::Copyable(Copyable::Unit) if else_expression.is_none()  => Ok((EvalValue::Copyable(Copyable::Unit),EvalContext::none())),
+        EvalValue::Copyable(Copyable::Unit) if else_expression.is_some()  => eval_expression(
+            ctx,// could be a tail call
+            scope,
+            else_expression.unwrap()?
+        ),
+        _ => eval_expression(ctx, scope, then_expression),
     }
 }
 
 fn quote_callback(_scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+
     let exp = args.try_pos(0)?.try_expression()?;
-    Ok( (EvalValue::Expression(exp.clone()).to_rc(), EvalContext::none()) )
+    Ok( (EvalValue::Reference(ReferenceValue::Expression(exp.clone()).to_rc()), EvalContext::none()) )
 }
 
 fn eval_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
     let (arg, _) = args.try_pos(0)?.evaluated(scope)?;
-    match arg.as_ref() {
-        EvalValue::Expression(exp) => eval_expression(EvalContext::none(), scope, exp),
-        e => Ok((arg, EvalContext::none())), //don't do anything
+
+    match &arg {
+        EvalValue::Reference(r) => {
+            match r.as_ref() {
+                ReferenceValue::Expression(exp) => eval_expression(EvalContext::none(), scope, exp),
+                 _ => Ok((arg, EvalContext::none())),
+
+            }
+        }
+        v => Ok((arg, EvalContext::none())),
     }
 }
 

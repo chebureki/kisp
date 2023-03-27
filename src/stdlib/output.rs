@@ -1,4 +1,4 @@
-use crate::value::{EvalContext, EvalResult, EvalValue};
+use crate::value::{Copyable, EvalContext, EvalResult, EvalValue, ReferenceValue};
 use crate::scope::ScopeRef;
 use crate::stdlib::util::{func};
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
@@ -10,7 +10,7 @@ fn print_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs
         .collect::<Vec<String>>()
         .join(" ");
     println!("{}", string);
-    Ok((EvalValue::Unit.to_rc(), EvalContext::none()))
+    Ok((EvalValue::Copyable(Copyable::Unit), EvalContext::none()))
 }
 
 pub fn std_output() -> Vec<BuiltinFunction> {
