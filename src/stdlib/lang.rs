@@ -1,4 +1,5 @@
 use crate::ast::{PosExpression, SExpression};
+use crate::expect_type;
 use crate::value::{EvalContext, EvalError, EvalResult, EvalValue};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
@@ -89,11 +90,28 @@ fn if_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) ->
     }
 }
 
+fn quote_callback(_scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    let exp = args.try_pos(0)?.try_expression()?;
+    Ok( (EvalValue::Expression(exp.clone()).to_ref(), EvalContext::none()) )
+}
+
+fn eval_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    let (arg, _) = args.try_pos(0)?.evaluated(scope)?;
+    match arg.as_ref() {
+        EvalValue::Expression(exp) => eval_expression(EvalContext::none(), scope, exp),
+        e => Ok((arg, EvalContext::none())), //don't do anything
+    }
+}
+
+
 pub fn std_lang() -> Vec<BuiltinFunction> {
     vec![
         func("let", let_callback),
         func("fn", function_declaration_callback),
         func("lambda", lambda_callback),
         func("if", if_callback),
+        func("quote", quote_callback),
+        func("eval", eval_callback),
+
     ]
 }

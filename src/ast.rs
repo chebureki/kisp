@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+use crate::lexer;
 use crate::lexer::Cursor;
 use crate::value::numeric::Numeric;
 
@@ -32,4 +34,20 @@ pub enum SExpression{
 pub struct PosExpression{
     pub cursor: Cursor,
     pub exp: SExpression
+}
+
+fn joined(v: &Vec<PosExpression>) -> String {
+    let strings: Vec<String> = v.iter().map(|e| e.exp.to_string()).collect();
+    strings.join( " ")
+}
+
+impl Display for SExpression{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SExpression::Symbol(i) => f.write_str(i.as_str()),
+            SExpression::Number(i) => f.write_fmt(format_args!("{}", i)),
+            SExpression::List(l) => f.write_fmt(format_args!("{}{}{}", lexer::langchars::PARENTHESIS_OPEN, joined(l), lexer::langchars::PARENTHESIS_CLOSE)),
+            SExpression::Block(l) => f.write_fmt(format_args!("{}{}{}", lexer::langchars::BRACKET_OPEN, joined(l), lexer::langchars::BRACKET_CLOSE)),
+        }
+    }
 }

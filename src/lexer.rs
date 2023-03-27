@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 use crate::value::numeric::Numeric;
 
-mod langchars {
+pub mod langchars {
     pub const PARENTHESIS_OPEN: char = '(';
     pub const PARENTHESIS_CLOSE: char = ')';
     pub const BRACKET_OPEN: char = '[';

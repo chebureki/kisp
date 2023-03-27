@@ -104,7 +104,7 @@ pub(crate) fn eval_call_with_values(ctx: EvalContext, scope: &ScopeRef, callable
         Callable::Internal(BuiltinFunction{callback,..}) => callback(
             scope,
             ctx,
-            BuiltInFunctionArgs::from(args.into_iter().map(|v| BuiltInFunctionArg::Val(v)).collect())
+            BuiltInFunctionArgs::from(args),
         ),
         Callable::Function(func) =>
             wrap_tail_call(ctx, scope, args, &func.arguments, &func.body, origin),
@@ -116,7 +116,7 @@ pub(crate) fn eval_call_with_values(ctx: EvalContext, scope: &ScopeRef, callable
 pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Callable, args: &'_ [PosExpression], origin: Option<EvalValueRef>) -> EvalResult {
     match callable {
         Callable::Internal(bi) => {
-            let exp_args: Vec<BuiltInFunctionArg> = args.iter().map(|exp| BuiltInFunctionArg::Exp(exp.clone())).collect();
+            let exp_args: Vec<EvalValueRef> = args.iter().map(|exp| EvalValue::Expression(exp.clone()).to_ref()).collect();
             (bi.callback)(scope, ctx, BuiltInFunctionArgs::from(exp_args))
         },
         Callable::Function(Function{arguments: _, body: _,..}) =>

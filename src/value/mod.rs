@@ -1,8 +1,8 @@
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 
 use std::rc::Rc;
-
+use crate::ast::{PosExpression, SExpression};
 
 
 use crate::lexer::Cursor;
@@ -25,12 +25,12 @@ pub enum EvalValue{
     Unit,
     True, // anything non nil
     //False, //really just nil
-    //ExpressionRef(&'_ SExpression),
     CallableValue(Callable),
     List(List),
+    Expression(PosExpression), //used for macros and builtins
 
     //TODO: does this even fit here? I don't wanna complicate the code too much though
-    TailCallValue(TailCall)
+    TailCallValue(TailCall),
 }
 
 pub type EvalValueRef = Rc<EvalValue>;
@@ -52,6 +52,7 @@ impl Display for EvalValue {
             EvalValue::List(list) => Display::fmt(list,f),
             EvalValue::TailCallValue(_) => f.write_str("<tail-call>"),
             EvalValue::Numeric(n) => Display::fmt(n, f),
+            EvalValue::Expression(PosExpression{exp,..}) => f.write_fmt(format_args!("'{}", exp)),
         }
     }
 }
