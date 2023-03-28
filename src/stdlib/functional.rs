@@ -123,6 +123,28 @@ fn reduce_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
     ret
 }
 
+fn fold_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    let (initial, _) = args.try_pos(0)?.evaluated(scope)?;
+
+    let (evaluated_middle, _) = args.try_pos(1)?.evaluated(scope)?;
+    let callable = expect_ref_type!(evaluated_middle, ReferenceValue::CallableValue(c) => c, None)?;
+
+    let (evaluated_right, _) = args.try_pos(2)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, None)?;
+
+    //just makes it simpler to use rust's reduce function
+    let oks: Vec<EvalResult> = list.iterator().map(|v| Ok((v, EvalContext::none()))).collect();
+    let ret = oks.into_iter()
+        .fold(Ok((initial, EvalContext::none())), |acc, v_res|
+            match acc{
+                Ok((acc_value, _)) => eval_call_with_values(EvalContext::none(), scope, callable, vec![acc_value, v_res.unwrap().0], None),
+                Err(e) => Err(e) //pass it down,
+            }
+        )
+        ;
+    ret
+}
+
 
 
 
@@ -133,6 +155,8 @@ pub fn std_functional() -> Vec<BuiltinFunction> {
         func("enumerate", enumerate_callback),
         func("zip", zip_callback),
         func("reduce", reduce_callback),
+        func("fold", fold_callback),
+
 
     ]
 }
