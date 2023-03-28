@@ -1,5 +1,6 @@
 use crate::stdlib::arithmetic::std_arithmetic;
 use crate::stdlib::comparison::std_comparison;
+use crate::stdlib::functional::std_functional;
 use crate::stdlib::lang::std_lang;
 use crate::stdlib::lists::std_lists;
 use crate::stdlib::output::std_output;
@@ -24,6 +25,7 @@ pub fn std_lib_functions() -> Vec<BuiltinFunction> {
         std_output(),
         std_lists(),
         std_types(),
+        std_functional(),
 
     ].into_iter().flatten().collect()
 }
