@@ -13,6 +13,7 @@ mod comparison;
 mod lang;
 mod lists;
 mod types;
+mod functional;
 
 
 pub fn std_lib_functions() -> Vec<BuiltinFunction> {
