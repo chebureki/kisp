@@ -10,6 +10,8 @@ name = "kisp"
 path = "src/lib.rs"
 test = true
 
+[features]
+functional = []
 
 [[bin]]
 name = "repl"
