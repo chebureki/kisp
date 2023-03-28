@@ -8,6 +8,23 @@ pub enum Numeric{
     Floating(f64),
     //BigInt
 }
+
+impl Numeric{
+    pub fn cast_int(&self) -> Self{
+        match self {
+            Numeric::Integer(i) => Numeric::Integer(*i),
+            Numeric::Floating(i) => Numeric::Integer(*i as i32),
+        }
+    }
+
+    pub fn cast_fp(&self) -> Self{
+        match self {
+            Numeric::Integer(i) => Numeric::Floating(*i as f64),
+            Numeric::Floating(i) => Numeric::Floating(*i),
+        }
+    }
+}
+
 //TODO: create a nice macro, this is really repetitive
 impl ops::Add for Numeric{
     type Output = Numeric;
