@@ -101,6 +101,28 @@ fn zip_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
 
 }
 
+fn reduce_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+
+    let (evaluated_left, _) = args.try_pos(0)?.evaluated(scope)?;
+    let callable = expect_ref_type!(evaluated_left, ReferenceValue::CallableValue(c) => c, None)?;
+
+    let (evaluated_right, _) = args.try_pos(1)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, None)?;
+
+    //just makes it simpler to use rust's reduce function
+    let oks: Vec<EvalResult> = list.iterator().map(|v| Ok((v, EvalContext::none()))).collect();
+    let ret = oks.into_iter()
+        .reduce(|acc, v|
+            match acc {
+                Ok((acc_value, _)) => eval_call_with_values(EvalContext::none(), scope, callable, vec![acc_value, v.unwrap().0], None),
+                Err(e) => Err(e), //just pass it down
+            }
+        )
+        .unwrap_or(Ok((EvalValue::Copyable(Copyable::Unit), EvalContext::none())))
+        ;
+    ret
+}
+
 
 
 
@@ -110,6 +132,7 @@ pub fn std_functional() -> Vec<BuiltinFunction> {
         func("filter", filter_callback),
         func("enumerate", enumerate_callback),
         func("zip", zip_callback),
+        func("reduce", reduce_callback),
 
     ]
 }
