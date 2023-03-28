@@ -146,6 +146,32 @@ fn fold_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs)
 }
 
 
+fn flatten_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
+    let (evaluated, _) = args.try_pos(0)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated, ReferenceValue::List(list) => list, None)?;
+
+    let list = list.iterator()
+        .map(|v|
+            match v.clone() {
+                EvalValue::Reference(r) => {
+                    match r.as_ref() {
+                        ReferenceValue::List(l) => l.iterator().collect::<Vec<EvalValue>>(),
+                        _ => vec![v],
+                    }
+                }
+                _ => vec![v],
+            }
+        )
+        .collect::<Vec<Vec<EvalValue>>>()
+        .into_iter()
+        .flatten()
+        .rev()
+        .collect();
+    Ok((EvalValue::Reference(ReferenceValue::List(list).to_rc()), EvalContext::none()))
+}
+
+
+
 
 
 pub fn std_functional() -> Vec<BuiltinFunction> {
@@ -156,7 +182,7 @@ pub fn std_functional() -> Vec<BuiltinFunction> {
         func("zip", zip_callback),
         func("reduce", reduce_callback),
         func("fold", fold_callback),
-
+        func("flatten", flatten_callback),
 
     ]
 }
