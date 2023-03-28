@@ -5,3 +5,4 @@ pub mod interpreter;
 pub mod scope;
 pub mod stdlib;
 pub mod value;
+pub mod testutils;
