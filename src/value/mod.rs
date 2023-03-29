@@ -17,15 +17,13 @@ pub mod builtin;
 pub mod numeric;
 
 #[derive(Debug, Clone)]
-pub enum Copyable{
+pub enum EvalValue{
+    //Copyable types
     Numeric(Numeric),
     Unit,
     True,
-}
 
-#[derive(Debug, Clone)]
-pub enum EvalValue{
-    Copyable(Copyable),
+    //wrapped in RC
     Reference(Rc<ReferenceValue>)
 }
 
@@ -59,21 +57,14 @@ impl Display for ReferenceValue {
     }
 }
 
-impl Display for Copyable{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Copyable::Numeric(n) => Display::fmt(n, f),
-            Copyable::Unit => f.write_str("unit"),
-            Copyable::True => f.write_str("true"),
-        }
-    }
-}
 
 impl Display for EvalValue{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            EvalValue::Copyable(c) => Display::fmt(c, f),
             EvalValue::Reference(r) => Display::fmt(r,f),
+            EvalValue::Numeric(n) => Display::fmt(n, f),
+            EvalValue::Unit => f.write_str("unit"),
+            EvalValue::True => f.write_str("true"),
         }
     }
 }

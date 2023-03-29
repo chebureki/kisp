@@ -2,7 +2,7 @@ use std::iter::Peekable;
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::ast::{PosExpression,SExpression};
-use crate::value::{Copyable, EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
 
 
 use crate::scope::{Scope, ScopeRef};
@@ -12,7 +12,7 @@ use crate::value::callable::{Callable, Function, Lambda, TailCall};
 
 fn env_scope() -> ScopeRef {
     let scope = Scope::new();
-    scope.insert("true".to_string(), EvalValue::Copyable(Copyable::True));
+    scope.insert("true".to_string(), EvalValue::True);
     for bi in std_lib_functions().into_iter() {
         //ReferenceValue::CallableValue(Callable::Internal(bi)).to_rc()
         scope.insert(bi.name.to_string(), EvalValue::Reference(ReferenceValue::CallableValue(Callable::Internal(bi)).to_rc()))
@@ -40,7 +40,7 @@ pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'
             Err(EvalError::UnknownSymbol(i.clone())),
             |v| Ok((v.clone(), EvalContext::none()))
         ),
-        SExpression::Number(i) => Ok((EvalValue::Copyable(Copyable::Numeric(i.clone())), EvalContext::none())),
+        SExpression::Number(i) => Ok((EvalValue::Numeric(i.clone()), EvalContext::none())),
         SExpression::List(expressions) => eval_list(ctx, scope, expressions),
         SExpression::Block(expressions) => eval_block(ctx, scope, expressions, false),
     }
@@ -137,7 +137,7 @@ pub(crate) fn eval_callable(ctx: EvalContext, scope: &ScopeRef, callable: &Calla
 pub(crate) fn eval_list(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<PosExpression>) -> EvalResult {
 
     if expressions.is_empty(){
-        return Ok((EvalValue::Copyable(Copyable::Unit), EvalContext::none())); //not sure how well this notation is, but whatever
+        return Ok((EvalValue::Unit, EvalContext::none())); //not sure how well this notation is, but whatever
     }
     let (head_value, _) = eval_expression(EvalContext::none(), scope, expressions.first().unwrap())?;
     let tail = &expressions[1..];
@@ -171,5 +171,5 @@ fn eval_block_iter(ctx: EvalContext, scope: &ScopeRef, iterator: &mut Peekable<I
 
 pub(crate) fn eval_block(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec<PosExpression>, flat: bool) -> EvalResult {
     let block_scope = scope.enter(None)?;
-    eval_block_iter(ctx, if flat {scope} else {&block_scope}, &mut expressions.iter().peekable(), (EvalValue::Copyable(Copyable::Unit), EvalContext::none()))
+    eval_block_iter(ctx, if flat {scope} else {&block_scope}, &mut expressions.iter().peekable(), (EvalValue::Unit, EvalContext::none()))
 }

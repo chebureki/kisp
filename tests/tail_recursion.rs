@@ -1,6 +1,6 @@
 use kisp::assert_match;
 use kisp::testutils::quick_result;
-use kisp::value::{Copyable, EvalResult, EvalValue};
+use kisp::value::{EvalResult, EvalValue};
 use kisp::value::numeric::Numeric;
 
 #[test]
@@ -21,5 +21,5 @@ fn sum_of_n(){
         (sum 100)
         "
     ).unwrap();
-    assert_match!(value, EvalValue::Copyable(Copyable::Numeric(Numeric::Integer(i))) if i==5050);
+    assert_match!(value, EvalValue::Numeric(Numeric::Integer(i)) if i==5050);
 }

@@ -1,5 +1,5 @@
 use crate::{expect_copy_type, expect_ref_type};
-use crate::value::{Copyable, EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
 use crate::interpreter::eval_call_with_values;
 use crate::value::list::List;
 use crate::value::numeric::Numeric;
@@ -16,7 +16,7 @@ fn list_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs)
 
 fn wrap_opt_to_unit(v: Option<EvalValue>) -> EvalValue {
     match v {
-        None => EvalValue::Copyable(Copyable::Unit),
+        None => EvalValue::Unit,
         Some(v) => v
     }
 }
@@ -24,7 +24,7 @@ fn nth_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
     let (list_value, _) = args.try_pos(1)?.evaluated(scope)?;
     let list = expect_ref_type!(list_value, ReferenceValue::List(l) => l, None)?;
     let (arg_value, _) = args.try_pos(0)?.evaluated(scope)?;
-    let pos = expect_copy_type!(arg_value, Copyable::Numeric(Numeric::Integer(pos)) => pos as usize, None)?;
+    let pos = expect_copy_type!(arg_value, EvalValue::Numeric(Numeric::Integer(pos)) => pos as usize, None)?;
     Ok((wrap_opt_to_unit(list.get(pos)), EvalContext::none()))
 }
 

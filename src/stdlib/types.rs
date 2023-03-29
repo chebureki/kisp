@@ -2,16 +2,16 @@ use crate::expect_copy_type;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::func;
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
-use crate::value::{Copyable, EvalContext, EvalResult, EvalValue, EvalError, ReferenceValue};
+use crate::value::{EvalContext, EvalResult, EvalValue, EvalError, ReferenceValue};
 use crate::value::callable::Callable;
 use crate::value::numeric::Numeric;
 
 
 fn num_cast_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs, cast: fn(Numeric) -> Numeric) -> EvalResult {
     let arg = args.try_pos(0)?.evaluated(scope)?.0;
-    let v = expect_copy_type!(arg, Copyable::Numeric(n) => n, None)?;
+    let v = expect_copy_type!(arg, EvalValue::Numeric(n) => n, None)?;
     let casted = cast(v);
-    Ok((EvalValue::Copyable(Copyable::Numeric(casted)), EvalContext::none()))
+    Ok((EvalValue::Numeric(casted), EvalContext::none()))
 }
 
 fn int_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
@@ -26,9 +26,9 @@ fn type_check_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctio
     let arg = args.try_pos(0)?.evaluated(scope)?.0;
     let check_ret = check(arg);
     let ret = if check_ret{
-        EvalValue::Copyable(Copyable::True)
+        EvalValue::True
     }else{
-        EvalValue::Copyable(Copyable::Unit)
+        EvalValue::Unit
     };
     Ok((ret, EvalContext::none()))
 }
@@ -44,19 +44,19 @@ fn ref_type_check_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFun
 
 
 fn is_unit_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Copyable(Copyable::Unit)))
+    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Unit))
 }
 
 fn is_numeric_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Copyable(Copyable::Numeric(_))))
+    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Numeric(_)))
 }
 
 fn is_int_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Copyable(Copyable::Numeric(Numeric::Integer(_)))))
+    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Numeric(Numeric::Integer(_))))
 }
 
 fn is_float_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Copyable(Copyable::Numeric(Numeric::Floating(_)))))
+    type_check_callback(scope, _ctx, args, |t| matches!(t, EvalValue::Numeric(Numeric::Floating(_))))
 }
 
 fn is_list_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {

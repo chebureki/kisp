@@ -4,7 +4,7 @@ use crate::interpreter::eval_call_with_values;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::func;
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
-use crate::value::{Copyable, EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
 use crate::value::callable::Callable;
 use crate::value::numeric::Numeric;
 use crate::value::list::List;
@@ -47,7 +47,7 @@ fn filter_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
         //terminate early on error
         .collect::<Result<Vec<(EvalValue, EvalValue)>,EvalError>>()?
         .into_iter()
-        .filter(|(cond ,v)| !matches!(cond, EvalValue::Copyable(Copyable::Unit)))
+        .filter(|(cond ,v)| !matches!(cond, EvalValue::Unit))
         .map(|(_,v)| v)
         .rev()
         .collect();
@@ -64,7 +64,7 @@ fn enumerate_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunction
             EvalValue::Reference(
                 ReferenceValue::List(
                     List::from(vec![
-                        EvalValue::Copyable(Copyable::Numeric(Numeric::Integer(pos as i32))),
+                        EvalValue::Numeric(Numeric::Integer(pos as i32)),
                         v
                     ])
                 ).to_rc()
@@ -118,7 +118,7 @@ fn reduce_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
                 Err(e) => Err(e), //just pass it down
             }
         )
-        .unwrap_or(Ok((EvalValue::Copyable(Copyable::Unit), EvalContext::none())))
+        .unwrap_or(Ok((EvalValue::Unit, EvalContext::none())))
         ;
     ret
 }
