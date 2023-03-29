@@ -83,6 +83,7 @@ pub(crate) fn eval_with_args_flat(given_ctx: EvalContext, scope: &ScopeRef, pass
     while let EvalValue::Reference(r)= &res {
         match r.as_ref(){
             ReferenceValue::TailCallValue(tc) => {
+                scope.clear();
                 populate_scope_with_args(&scope, tc.args.clone(), arg_names);
                 (res, res_ctx) = eval_expression(EvalContext{possible_tail: true}, scope, expression)?;
             },

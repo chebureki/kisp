@@ -47,6 +47,11 @@ impl Scope {
         }
     }
 
+    pub fn clear(&self) -> (){
+        let mut map = self.entries.borrow_mut();
+        map.clear();
+    }
+
     pub fn insert(&self, identifier: String, value: EvalValue) -> () {
         let mut map = self.entries.borrow_mut();
         map.insert(identifier, value);
