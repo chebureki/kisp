@@ -2,6 +2,7 @@ use std::iter::Peekable;
 use crate::value::numeric::Numeric;
 
 pub mod langchars {
+    pub const COMMENT: char= ';';
     pub const PARENTHESIS_OPEN: char = '(';
     pub const PARENTHESIS_CLOSE: char = ')';
     pub const BRACKET_OPEN: char = '[';
@@ -123,6 +124,20 @@ impl<'t> Lexer<'t>{
         (TokenValue::Identifier(ident),cursor.next_columns(len))
     }
 
+    pub fn skip_comment(&self, start: &Cursor) -> (Cursor) {
+        let mut cursor = start.clone();
+        if let Some(c) = self.char_at_cursor(&cursor) {
+            if c != langchars::COMMENT{ panic!("not a comment start");}
+        }
+        cursor = cursor.next_column();
+        while let Some(char) = self.char_at_cursor(&cursor){
+            if char == langchars::NEW_LINE{
+                break;
+            }
+            cursor = cursor.next_column();
+        }
+        cursor
+    }
 
     pub fn next_token(&self, cursor: &Cursor) -> (Token, Cursor){
         if let Some(char) = self.char_at_cursor(&cursor){
@@ -133,7 +148,7 @@ impl<'t> Lexer<'t>{
                 langchars::PARENTHESIS_CLOSE => { (Token{cursor: cursor.next_column(), value: TokenValue::ParenthesisClose}, cursor.next_column()) }
                 langchars::BRACKET_OPEN => { (Token{cursor: cursor.next_column(), value: TokenValue::BracketOpen}, cursor.next_column()) }
                 langchars::BRACKET_CLOSE => { (Token{cursor: cursor.next_column(), value: TokenValue::BracketClose}, cursor.next_column()) }
-
+                langchars::COMMENT => {self.next_token(&self.skip_comment(cursor))}
                 _ => {
                     let (ident_token, after_cursor) = self.read_identifier(cursor);
                     let TokenValue::Identifier(i) = ident_token else {panic!("didn't receive identifier")};
