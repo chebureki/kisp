@@ -53,3 +53,13 @@ fn addition(){
     ).unwrap();
     assert_match!(value, EvalValue::Copyable(Copyable::Numeric(Numeric::Integer(i))) if i==2);
 }
+
+#[test]
+fn comments(){
+    let (value, _) = quick_result("
+        ;hello there
+        (+ 1 1)
+        ;I should have no effect on the result"
+    ).unwrap();
+    assert_match!(value, EvalValue::Copyable(Copyable::Numeric(Numeric::Integer(i))) if i==2);
+}
