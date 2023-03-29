@@ -1,5 +1,5 @@
 use crate::ast::{PosExpression, SExpression};
-use crate::value::{Copyable, EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::{func};
@@ -78,8 +78,8 @@ fn if_callback(scope: &ScopeRef, ctx: EvalContext, args: BuiltInFunctionArgs) ->
         ;
     let then_expression = args.try_pos(1)?.try_expression()?;
     match condition {
-        EvalValue::Copyable(Copyable::Unit) if else_expression.is_none()  => Ok((EvalValue::Copyable(Copyable::Unit),EvalContext::none())),
-        EvalValue::Copyable(Copyable::Unit) if else_expression.is_some()  => eval_expression(
+        EvalValue::Unit if else_expression.is_none()  => Ok((EvalValue::Unit,EvalContext::none())),
+        EvalValue::Unit if else_expression.is_some()  => eval_expression(
             ctx,// could be a tail call
             scope,
             else_expression.unwrap()?

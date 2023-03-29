@@ -1,5 +1,5 @@
 use crate::expect_copy_type;
-use crate::value::{Copyable, EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
 use crate::scope::ScopeRef;
 use crate::value::numeric::Numeric;
 use crate::stdlib::util::{func};
@@ -18,9 +18,9 @@ fn function_with_reduction<T>(scope: &ScopeRef, args: BuiltInFunctionArgs, value
 
 fn numeric_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, reduction: fn(Numeric, Numeric) -> Numeric) -> EvalResult{
     let value_mapping =
-        |value: &EvalValue| expect_copy_type!(value, Copyable::Numeric(n) => n.clone(), None);
+        |value: &EvalValue| expect_copy_type!(value, EvalValue::Numeric(n) => n.clone(), None);
     function_with_reduction(scope, args, value_mapping, reduction)
-        .map(|i| (EvalValue::Copyable(Copyable::Numeric(i)), EvalContext::none()))
+        .map(|i| (EvalValue::Numeric(i), EvalContext::none()))
 }
 
 fn addition_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
