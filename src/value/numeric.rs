@@ -101,11 +101,20 @@ impl ops::Div for Numeric{
     }
 }
 
+//not sure why, but these are the magic limits
+const FLOAT_SCIENTIFIC_NOTATION_MAX: f64 = 1e+16;
+const FLOAT_SCIENTIFIC_NOTATION_MIN: f64 = 1e-5;
+
 impl Display for Numeric {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Numeric::Integer(i) => Display::fmt(i, f),
-            Numeric::Floating(i) => f.write_fmt(format_args!("{:e}", i)),
+            Numeric::Floating(i) =>
+                if *i>= FLOAT_SCIENTIFIC_NOTATION_MAX  || *i <= FLOAT_SCIENTIFIC_NOTATION_MIN{
+                    f.write_fmt(format_args!("{:e}", i))
+                }else{
+                    f.write_fmt(format_args!("{}", i))
+                }
         }
     }
 }
