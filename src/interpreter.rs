@@ -1,14 +1,15 @@
 use std::iter::Peekable;
 use std::rc::Rc;
 use std::slice::Iter;
-use crate::ast::{PosExpression,SExpression};
-use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::ast::{PosExpression, SExpression};
+use crate::value::{EvalContext, EvalResult, EvalValue, ReferenceValue};
 
 
 use crate::scope::{Scope, ScopeRef};
 use crate::stdlib::std_lib_functions;
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArg, BuiltInFunctionArgs};
 use crate::value::callable::{Callable, Function, Lambda, TailCall};
+use crate::value::error::{ErrorContext, EvalError};
 
 fn env_scope() -> ScopeRef {
     let scope = Scope::new();
@@ -37,7 +38,7 @@ pub fn eval(ast: &'_ PosExpression, provided_scope: Option<ScopeRef>) -> (EvalRe
 pub(crate) fn eval_expression(ctx: EvalContext, scope: &ScopeRef, expression: &'_ PosExpression) -> EvalResult {
     match &expression.exp {
         SExpression::Symbol(i) => scope.lookup(i).map_or(
-            Err(EvalError::UnknownSymbol(i.clone())),
+            Err(EvalError::UnknownSymbol(i.clone()).trace(scope)),
             |v| Ok((v.clone(), EvalContext::none()))
         ),
         SExpression::Number(i) => Ok((EvalValue::Numeric(i.clone()), EvalContext::none())),
@@ -100,7 +101,7 @@ pub(crate) fn eval_with_args(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<
 }
 
 
-fn eval_all(_ctx: EvalContext, scope: &ScopeRef, exps: & [PosExpression]) -> Result<Vec<EvalValue>, EvalError> {
+fn eval_all(_ctx: EvalContext, scope: &ScopeRef, exps: & [PosExpression]) -> Result<Vec<EvalValue>, ErrorContext> {
     exps.iter()
         .map(|exp| eval_expression(EvalContext::none(), scope, exp).map(|t| t.0))
         .collect()
@@ -145,10 +146,10 @@ pub(crate) fn eval_list(ctx: EvalContext, scope: &ScopeRef, expressions: &'_ Vec
         EvalValue::Reference(r) => {
             match r.as_ref(){
                 ReferenceValue::CallableValue(c) => Ok((r.clone(),c)),
-                _ => Err(EvalError::CallingNonCallable)
+                _ => Err(EvalError::CallingNonCallable.trace(scope))
             }
         }
-        _ => Err(EvalError::CallingNonCallable)
+        _ => Err(EvalError::CallingNonCallable.trace(scope))
     }?;
     eval_callable(ctx, scope, callable, tail, Some(r.clone()))
 }

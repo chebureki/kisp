@@ -1,11 +1,12 @@
 use crate::{expect_copy_type, expect_ref_type};
-use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalResult, EvalValue, ReferenceValue};
 use crate::interpreter::eval_call_with_values;
 use crate::value::list::List;
 use crate::value::numeric::Numeric;
 use crate::scope::ScopeRef;
-use crate::stdlib::util::{func};
+use crate::stdlib::util::func;
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
+use crate::value::error::EvalError;
 
 
 fn list_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
@@ -21,31 +22,31 @@ fn wrap_opt_to_unit(v: Option<EvalValue>) -> EvalValue {
     }
 }
 fn nth_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    let (list_value, _) = args.try_pos(1)?.evaluated(scope)?;
-    let list = expect_ref_type!(list_value, ReferenceValue::List(l) => l, None)?;
-    let (arg_value, _) = args.try_pos(0)?.evaluated(scope)?;
-    let pos = expect_copy_type!(arg_value, EvalValue::Numeric(Numeric::Integer(pos)) => pos as usize, None)?;
+    let (list_value, _) = args.try_pos(scope, 1)?.evaluated(scope)?;
+    let list = expect_ref_type!(list_value, ReferenceValue::List(l) => l, scope)?;
+    let (arg_value, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let pos = expect_copy_type!(arg_value, EvalValue::Numeric(Numeric::Integer(pos)) => pos as usize, scope)?;
     Ok((wrap_opt_to_unit(list.get(pos)), EvalContext::none()))
 }
 
 
 fn car_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs) -> EvalResult {
-    let (arg_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
-    let list = expect_ref_type!(arg_value, ReferenceValue::List(v) => v, None)?;
+    let (arg_value, _ )  = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let list = expect_ref_type!(arg_value, ReferenceValue::List(v) => v, scope)?;
     Ok((wrap_opt_to_unit(list.head()), EvalContext::none()))
 }
 
 fn cdr_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs) -> EvalResult {
-    let (arg_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
-    let list = expect_ref_type!(arg_value, ReferenceValue::List(l) => l, None)?;
+    let (arg_value, _ )  = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let list = expect_ref_type!(arg_value, ReferenceValue::List(l) => l, scope)?;
     Ok((EvalValue::Reference(ReferenceValue::List(list.tail()).to_rc()), EvalContext::none()))
 }
 
 
 fn cons_callback(scope: &ScopeRef, _ctx: EvalContext, args:  BuiltInFunctionArgs) -> EvalResult {
-    let (arg_value, _ )  = args.try_pos(1)?.evaluated(scope)?;
-    let list = expect_ref_type!(arg_value, ReferenceValue::List(l) => l, None)?;
-    let (con_value, _ )  = args.try_pos(0)?.evaluated(scope)?;
+    let (arg_value, _ )  = args.try_pos(scope, 1)?.evaluated(scope)?;
+    let list = expect_ref_type!(arg_value, ReferenceValue::List(l) => l, scope)?;
+    let (con_value, _ )  = args.try_pos(scope, 0)?.evaluated(scope)?;
     Ok((EvalValue::Reference(ReferenceValue::List(list.prepended(con_value)).to_rc()), EvalContext::none()))
 }
 

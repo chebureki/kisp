@@ -1,11 +1,12 @@
 use std::fmt;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 use crate::ast::PosExpression;
 use crate::scope::ScopeRef;
 use crate::value::builtin::BuiltinFunction;
 use crate::value::{EvalValue, ReferenceValue};
 
+#[derive(Debug)]
 pub struct Function{
     pub in_scope: ScopeRef,
     pub name: String,
@@ -19,12 +20,14 @@ impl Function{
     }
 }
 
+#[derive(Debug)]
 pub enum Callable{
     Internal(BuiltinFunction),
     Function(Function),
     Lambda(Lambda),
 }
 
+#[derive(Debug)]
 pub struct Lambda {
     pub in_scope: ScopeRef,
     pub arguments: Vec<String>,
@@ -39,7 +42,7 @@ pub struct TailCall{
 }
 
 
-impl Debug for Callable{
+impl Display for Callable{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Callable::Internal(i) => f.write_fmt(format_args!("<internal: {}>", i.name)),

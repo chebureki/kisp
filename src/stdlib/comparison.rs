@@ -1,22 +1,23 @@
 use crate::expect_copy_type;
-use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalResult, EvalValue, ReferenceValue};
 use crate::scope::ScopeRef;
 use crate::value::numeric::Numeric;
-use crate::stdlib::util::{func};
+use crate::stdlib::util::func;
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
+use crate::value::error::EvalError;
 
 // < > = >= <= !=
 
 //TODO: create some quick type conversion macros
 fn comparison_reduction(scope: &ScopeRef, args: BuiltInFunctionArgs, operation: fn(Numeric, Numeric) -> bool) -> EvalResult {
-    let head_arg = args.try_pos(0)?.evaluated(scope)?.0;
-    let head = expect_copy_type!(head_arg, EvalValue::Numeric(n) => n, None)?;
-    //expect_copy_type!(args.try_pos(0)?.evaluated(scope)?.0, Numeric(n) => i.clone(), None)?;
+    let head_arg = args.try_pos(scope, 0)?.evaluated(scope)?.0;
+    let head = expect_copy_type!(head_arg, EvalValue::Numeric(n) => n, scope)?;
+    //expect_copy_type!(args.try_pos(scope, 0)?.evaluated(scope)?.0, Numeric(n) => i.clone(), None)?;
     let tail = &args.values[1..];
 
     for v in tail {
         let r_arg = v.evaluated(scope)?.0;
-        let r_value = expect_copy_type!(r_arg, EvalValue::Numeric(n) => n, None)?;
+        let r_value = expect_copy_type!(r_arg, EvalValue::Numeric(n) => n, scope)?;
         if !operation(head.clone(), r_value){
             return Ok((EvalValue::Unit, EvalContext::none())); //early return, don't even evaluate the rest
         }

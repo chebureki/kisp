@@ -6,3 +6,4 @@ pub mod scope;
 pub mod stdlib;
 pub mod value;
 pub mod testutils;
+pub mod stacktrace;
