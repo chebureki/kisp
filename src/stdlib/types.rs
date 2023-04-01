@@ -2,14 +2,15 @@ use crate::expect_copy_type;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::func;
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
-use crate::value::{EvalContext, EvalResult, EvalValue, EvalError, ReferenceValue};
+use crate::value::{EvalContext, EvalResult, EvalValue, ReferenceValue};
 use crate::value::callable::Callable;
+use crate::value::error::EvalError;
 use crate::value::numeric::Numeric;
 
 
 fn num_cast_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs, cast: fn(Numeric) -> Numeric) -> EvalResult {
-    let arg = args.try_pos(0)?.evaluated(scope)?.0;
-    let v = expect_copy_type!(arg, EvalValue::Numeric(n) => n, None)?;
+    let arg = args.try_pos(scope, 0)?.evaluated(scope)?.0;
+    let v = expect_copy_type!(arg, EvalValue::Numeric(n) => n, scope)?;
     let casted = cast(v);
     Ok((EvalValue::Numeric(casted), EvalContext::none()))
 }
@@ -23,7 +24,7 @@ fn float_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs
 }
 
 fn type_check_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs, check: impl Fn(EvalValue) -> bool) -> EvalResult {
-    let arg = args.try_pos(0)?.evaluated(scope)?.0;
+    let arg = args.try_pos(scope, 0)?.evaluated(scope)?.0;
     let check_ret = check(arg);
     let ret = if check_ret{
         EvalValue::True

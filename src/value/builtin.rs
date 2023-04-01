@@ -1,7 +1,10 @@
+use std::fmt::{Debug, Formatter};
+use std::path::Display;
 use crate::ast::PosExpression;
 use crate::interpreter::eval_expression;
 use crate::scope::ScopeRef;
-use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalResult, EvalValue, ReferenceValue};
+use crate::value::error::{ErrorContext, EvalError};
 use crate::value::EvalValue::Reference;
 
 //wrappers for helper functions
@@ -28,13 +31,13 @@ impl BuiltInFunctionArg{
         }
     }
 
-    pub fn try_expression<'c>(&'c self) -> Result<&'c PosExpression, EvalError> {
+    pub fn try_expression<'c>(&'c self, scope: &ScopeRef) -> Result<&'c PosExpression, ErrorContext> {
         match &self.value {
             Reference(rc) => match rc.as_ref(){
                 ReferenceValue::Expression(e) => Ok(e),
-                _ => Err(EvalError::InvalidType(None))
+                _ => Err(EvalError::InvalidType.trace(scope))
             },
-            _ => Err(EvalError::InvalidType(None)),
+            _ => Err(EvalError::InvalidType.trace(scope)),
 
         }
     }
@@ -47,7 +50,7 @@ impl BuiltInFunctionArgs{
         }
     }
 
-    pub fn eval_all(self, scope: &ScopeRef) -> Result<Vec<EvalValue>, EvalError> {
+    pub fn eval_all(self, scope: &ScopeRef) -> Result<Vec<EvalValue>, ErrorContext> {
         self.values
             .into_iter()
             //discard ctx, cuz who cares
@@ -55,10 +58,10 @@ impl BuiltInFunctionArgs{
             .collect()
     }
 
-    pub fn try_pos<'c>(&'c self, pos: usize) -> Result<&'c BuiltInFunctionArg, EvalError> {
+    pub fn try_pos<'c>(&'c self, scope: &ScopeRef, pos: usize) -> Result<&'c BuiltInFunctionArg, ErrorContext> {
         match self.values.get(pos) {
             Some(v) => Ok(v),
-            None => Err(EvalError::MissingArgument),
+            None => Err(EvalError::MissingArgument.trace(scope)),
         }
     }
 }
@@ -66,4 +69,10 @@ impl BuiltInFunctionArgs{
 pub struct BuiltinFunction{
     pub callback: InternalCallback,
     pub name: &'static str
+}
+
+impl Debug for BuiltinFunction{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("(builtin {})", self.name))
+    }
 }

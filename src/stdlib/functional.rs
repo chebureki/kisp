@@ -4,18 +4,19 @@ use crate::interpreter::eval_call_with_values;
 use crate::scope::ScopeRef;
 use crate::stdlib::util::func;
 use crate::value::builtin::{BuiltinFunction, BuiltInFunctionArgs};
-use crate::value::{EvalContext, EvalError, EvalResult, EvalValue, ReferenceValue};
+use crate::value::{EvalContext, EvalResult, EvalValue, ReferenceValue};
 use crate::value::callable::Callable;
+use crate::value::error::{ErrorContext, EvalError};
 use crate::value::numeric::Numeric;
 use crate::value::list::List;
 
 fn map_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
 
-    let (evaluated_left, _) = args.try_pos(0)?.evaluated(scope)?;
-    let callable = expect_ref_type!(evaluated_left, ReferenceValue::CallableValue(c) => c, None)?;
+    let (evaluated_left, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let callable = expect_ref_type!(evaluated_left, ReferenceValue::CallableValue(c) => c, scope)?;
 
-    let (evaluated_right, _) = args.try_pos(1)?.evaluated(scope)?;
-    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, None)?;
+    let (evaluated_right, _) = args.try_pos(scope, 1)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, scope)?;
 
     let list = list.iterator()
         .map(|mono_arg|
@@ -23,7 +24,7 @@ fn map_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
         )
         //TODO: this collect annoys me, but fine for now
         //terminate early on error
-        .collect::<Result<Vec<EvalValue>,EvalError>>()?
+        .collect::<Result<Vec<EvalValue>, ErrorContext>>()?
         .into_iter()
         .rev()
         .collect();
@@ -32,11 +33,11 @@ fn map_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
 
 fn filter_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
 
-    let (evaluated_left, _) = args.try_pos(0)?.evaluated(scope)?;
-    let callable = expect_ref_type!(evaluated_left, ReferenceValue::CallableValue(c) => c, None)?;
+    let (evaluated_left, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let callable = expect_ref_type!(evaluated_left, ReferenceValue::CallableValue(c) => c, scope)?;
 
-    let (evaluated_right, _) = args.try_pos(1)?.evaluated(scope)?;
-    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, None)?;
+    let (evaluated_right, _) = args.try_pos(scope, 1)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, scope)?;
 
     let list = list.iterator()
         .map(|mono_arg|
@@ -45,7 +46,7 @@ fn filter_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
         )
         //TODO: this collect annoys me, but fine for now
         //terminate early on error
-        .collect::<Result<Vec<(EvalValue, EvalValue)>,EvalError>>()?
+        .collect::<Result<Vec<(EvalValue, EvalValue)>, ErrorContext>>()?
         .into_iter()
         .filter(|(cond ,v)| !matches!(cond, EvalValue::Unit))
         .map(|(_,v)| v)
@@ -55,8 +56,8 @@ fn filter_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
 }
 
 fn enumerate_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    let (evaluated, _) = args.try_pos(0)?.evaluated(scope)?;
-    let list = expect_ref_type!(evaluated, ReferenceValue::List(list) => list, None)?;
+    let (evaluated, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated, ReferenceValue::List(list) => list, scope)?;
 
     let list = list.iterator()
         .enumerate()
@@ -78,11 +79,11 @@ fn enumerate_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunction
 }
 
 fn zip_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    let (evaluated_left, _) = args.try_pos(0)?.evaluated(scope)?;
-    let (evaluated_right, _) = args.try_pos(1)?.evaluated(scope)?;
+    let (evaluated_left, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let (evaluated_right, _) = args.try_pos(scope, 1)?.evaluated(scope)?;
 
-    let list_left = expect_ref_type!(evaluated_left, ReferenceValue::List(list) => list, None)?;
-    let list_right = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, None)?;
+    let list_left = expect_ref_type!(evaluated_left, ReferenceValue::List(list) => list, scope)?;
+    let list_right = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, scope)?;
 
     let values_left: Vec<EvalValue> = list_left.iterator().collect();
     let values_right: Vec<EvalValue> = list_right.iterator().collect();
@@ -103,11 +104,11 @@ fn zip_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) 
 
 fn reduce_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
 
-    let (evaluated_left, _) = args.try_pos(0)?.evaluated(scope)?;
-    let callable = expect_ref_type!(evaluated_left, ReferenceValue::CallableValue(c) => c, None)?;
+    let (evaluated_left, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let callable = expect_ref_type!(evaluated_left, ReferenceValue::CallableValue(c) => c, scope)?;
 
-    let (evaluated_right, _) = args.try_pos(1)?.evaluated(scope)?;
-    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, None)?;
+    let (evaluated_right, _) = args.try_pos(scope, 1)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, scope)?;
 
     //just makes it simpler to use rust's reduce function
     let oks: Vec<EvalResult> = list.iterator().map(|v| Ok((v, EvalContext::none()))).collect();
@@ -124,13 +125,13 @@ fn reduce_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArg
 }
 
 fn fold_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    let (initial, _) = args.try_pos(0)?.evaluated(scope)?;
+    let (initial, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
 
-    let (evaluated_middle, _) = args.try_pos(1)?.evaluated(scope)?;
-    let callable = expect_ref_type!(evaluated_middle, ReferenceValue::CallableValue(c) => c, None)?;
+    let (evaluated_middle, _) = args.try_pos(scope, 1)?.evaluated(scope)?;
+    let callable = expect_ref_type!(evaluated_middle, ReferenceValue::CallableValue(c) => c, scope)?;
 
-    let (evaluated_right, _) = args.try_pos(2)?.evaluated(scope)?;
-    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, None)?;
+    let (evaluated_right, _) = args.try_pos(scope, 2)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated_right, ReferenceValue::List(list) => list, scope)?;
 
     //just makes it simpler to use rust's reduce function
     let oks: Vec<EvalResult> = list.iterator().map(|v| Ok((v, EvalContext::none()))).collect();
@@ -147,8 +148,8 @@ fn fold_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs)
 
 
 fn flatten_callback(scope: &ScopeRef, _ctx: EvalContext, args: BuiltInFunctionArgs) -> EvalResult {
-    let (evaluated, _) = args.try_pos(0)?.evaluated(scope)?;
-    let list = expect_ref_type!(evaluated, ReferenceValue::List(list) => list, None)?;
+    let (evaluated, _) = args.try_pos(scope, 0)?.evaluated(scope)?;
+    let list = expect_ref_type!(evaluated, ReferenceValue::List(list) => list, scope)?;
 
     let list = list.iterator()
         .map(|v|
